@@ -1,0 +1,11 @@
+{
+  "ambientDependencies": {
+    "d3": "github:DefinitelyTyped/DefinitelyTyped/d3/d3.d.ts#fab683ca77d0286b9d51aba6375deaceb41b22f5",
+    "react": "github:DefinitelyTyped/DefinitelyTyped/react/react.d.ts#fab683ca77d0286b9d51aba6375deaceb41b22f5",
+    "react-dom": "github:DefinitelyTyped/DefinitelyTyped/react/react-dom.d.ts#fab683ca77d0286b9d51aba6375deaceb41b22f5"
+  },
+  "dependencies": {
+    "d3-scale": "file:typings/scales/index.d.ts",
+    "d3-shape": "file:typings/shapes/index.d.ts"
+  }
+}
