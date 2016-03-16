@@ -7,6 +7,7 @@ import * as _ from 'lodash';
 import { Axis } from './axis';
 import { AreaGraph } from './areagraph';
 import { BarGraph } from './BarGraph';
+import { StackedBarGraph } from './StackedBarGraph';
 
 interface Data {
     value?: any;
@@ -107,19 +108,8 @@ export class TextBox extends React.Component<any, Data> {
      */
     renderAreaGraph() {
         if (this.state.valid){
-            // return (
-            //     <AreaGraph width={400}
-            //         height={400}
-            //         yLabel="yLabel"
-            //         xLabel="xLabel"
-            //         title="Title"
-            //         data={this.state.value}
-            //         xFunction={this.state.xFunction}
-            //         yFunction={this.state.yFunction}>
-            //         </AreaGraph>
-            // )
             return (
-                <BarGraph width={5000}
+                <StackedBarGraph width={5000}
                     height={400}
                     yLabel="yLabel"
                     xLabel="xLabel"
@@ -130,7 +120,7 @@ export class TextBox extends React.Component<any, Data> {
                     groupFunction={this.state.groupFunction}
                     colorFunction={this.state.colorFunction}
                     labelFunction={this.state.labelFunction}>
-                </BarGraph>
+                </StackedBarGraph>
             )
 
         }
@@ -182,7 +172,7 @@ export class TextBox extends React.Component<any, Data> {
                 type="text">
                 </textarea>
                 <button type="button" onClick={this.handleGroupSubmit.bind(this)}>
-                    Use Group By Value Function
+                    Use Color By Value Function
                 </button>
                 <p></p>
                 <textarea

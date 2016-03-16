@@ -31,11 +31,7 @@ export class Axis extends React.Component<AxisLines, any> {
         this.padding = 45;
         this.tickLen = 15;
 
-        // props.yScale.nice();
-        // props.xScale.nice();
-
         this.yMin = props.yScale.domain()[0];
-        //this.xMax = props.xScale.domain()[1];
         this.yMax = props.yScale.domain()[1];
 
         this.yMinScaled = props.yScale.range()[0];
@@ -54,29 +50,6 @@ export class Axis extends React.Component<AxisLines, any> {
     renderAxis() {
         // finds the range that the axis will span
         let sWidth = 1;
-
-        // padding is to allow room for axis labels and tick marks
-        // scaling 0 because 0 != 0 after it's scaled
-        // return (
-        //     <g>
-        //         <line
-        //         x1={this.props.xScale(0) + (this.padding)}
-        //         y1={this.props.yScale(this.yMin)}
-        //         x2={this.xMaxScaled + (this.padding)}
-        //         y2={this.props.yScale(this.yMin)}
-        //         strokeWidth={sWidth}
-        //         stroke="black" />
-
-        //         <line
-        //         x1={(this.padding) + this.props.xScale(0)}
-        //         y1={this.props.xScale(0)}
-        //         x2={(this.padding) + this.props.xScale(0)}
-        //         y2={this.props.yScale(this.yMin)}
-        //         strokeWidth={sWidth}
-        //         stroke="black" />
-        //     </g>
-        // )
-        //
         return (
             <g>
                 <line
@@ -115,38 +88,6 @@ export class Axis extends React.Component<AxisLines, any> {
 
         //transform for y axis label
         let transformY = "rotate(-90, " + labelLenY + "," + (this.yMinScaled)/2 + ")";
-        //let transformY = "rotate(-90)";
-
-        // padding is to allow room for axis labels and tick marks
-        // scaling 0 because 0 != 0 after it's scaled
-        // return (
-        //     <g>
-        //         <text
-        //         x={(this.padding) + this.props.xScale(0) + xMax2}
-        //         y={this.yMinScaled + this.tickLen * 3}
-        //         fill="black"
-        //         style={{textAnchor: "middle"}}>
-        //         {this.props.xLabel}
-        //         </text>
-
-        //         <text
-        //         x={0}
-        //         y={this.yMinScaled/2}
-        //         fill="black"
-        //         transform={transformY}
-        //         style={{textAnchor: "middle"}}>
-        //         {this.props.yLabel}
-        //         </text>
-
-        //         <text
-        //         x={(this.padding) + this.props.xScale(0) + xMax2}
-        //         y={this.yMaxScaled}
-        //         fill="black"
-        //         style={{textAnchor: "middle"}}>
-        //         {this.props.title}
-        //         </text>
-        //     </g>
-        // )
         return (
             <g>
                 <text
