@@ -8,6 +8,7 @@ import { Axis } from './axis';
 import { AreaGraph } from './areagraph';
 import { BarGraph } from './BarGraph';
 import { StackedBarGraph } from './StackedBarGraph';
+import { LinePlot } from './LinePlot';
 
 interface Data {
     value?: any;
@@ -17,6 +18,7 @@ interface Data {
     groupFunction?: any;
     colorFunction?: any;
     labelFunction?: any;
+    scaleType?: any;
 }
 
 export class TextBox extends React.Component<any, Data> {
@@ -100,6 +102,13 @@ export class TextBox extends React.Component<any, Data> {
     }
 
     /**
+     * sets if ordinal or continuous for color grouping
+     */
+    handleRSubmit(evt) {
+        this.setState({ scaleType: evt.target.value });
+    }
+
+    /**
      * checks the state is valid and renders
      * data if valid or no data message if not valid
      *
@@ -109,7 +118,7 @@ export class TextBox extends React.Component<any, Data> {
     renderAreaGraph() {
         if (this.state.valid){
             return (
-                <StackedBarGraph width={5000}
+                <LinePlot width={5000}
                     height={400}
                     yLabel="yLabel"
                     xLabel="xLabel"
@@ -119,8 +128,9 @@ export class TextBox extends React.Component<any, Data> {
                     yFunction={this.state.yFunction}
                     groupFunction={this.state.groupFunction}
                     colorFunction={this.state.colorFunction}
-                    labelFunction={this.state.labelFunction}>
-                </StackedBarGraph>
+                    labelFunction={this.state.labelFunction}
+                    scaleType={this.state.scaleType}>
+                </LinePlot>
             )
 
         }
@@ -174,6 +184,11 @@ export class TextBox extends React.Component<any, Data> {
                 <button type="button" onClick={this.handleGroupSubmit.bind(this)}>
                     Use Color By Value Function
                 </button>
+                <p></p>
+                <input type="radio" name="scale" value="ordinal" onChange={this.handleRSubmit.bind(this)}>
+                    {"Ordinal"} </input>
+                <input type="radio" name="scale" value="continuous" onChange={this.handleRSubmit.bind(this)}>
+                    {"Continuous"} </input>
                 <p></p>
                 <textarea
                 ref="textArea4"
