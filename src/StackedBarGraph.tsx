@@ -71,7 +71,6 @@ export class StackedBarGraph extends React.Component<any, any> {
             }
         }
         return (
-            <g>
             <path key={"b"}
                 d={path}
                 fill={"white"}
@@ -79,9 +78,13 @@ export class StackedBarGraph extends React.Component<any, any> {
                 strokeWidth={1}
                 onClick={this.handleClick.bind(this) }>
                 </path>
-            <canvas id="color" width="500" height="500">
-                </canvas>
-                </g>
+        )
+    }
+
+    renderBackground() {
+
+        return (
+            <canvas id="graph" width="150" height="150"></canvas>
         )
     }
 
@@ -92,13 +95,17 @@ export class StackedBarGraph extends React.Component<any, any> {
      *      click event
      */
     handleClick(evt) {
-        let { xScale, padding, xFunc } = this.calculate();
+        let { xScale, padding, xFunc, yFunc, yScale } = this.calculate();
         let margin = Number(document.getElementById("body")
             .style.margin.replace(/[a-zA-Z]/g, ""));
         let x = evt.clientX - margin + window.scrollX - xScale(xFunc(this.props.data[0])) - padding;
-        let y = evt.clientY + margin + window.scrollY;
+        let y = evt.clientY;
         let bar = Math.floor(x / xScale.bandwidth());
-        console.log(this.xVals[xScale.domain()[bar]]);
+        let sortedYVal = _.sortBy(this.xVals[xScale.domain()[bar]], (d) => yFunc(d));
+        console.log(evt.target.getBoundingClientRect().top);
+        console.log(evt.clientY - evt.target.getBoundingClientRect().top + 30 - margin);
+        console.log(yScale.invert(evt.clientY - evt.target.getBoundingClientRect().top + 30 - margin));
+        console.log(document.getElementsByClassName("header"));
     }
 
     /**
@@ -146,6 +153,7 @@ export class StackedBarGraph extends React.Component<any, any> {
                 <svg width="5000" height="500">
                     {this.renderLine()}
                     {this.renderLabel()}
+                    {this.renderBackground()}
                     <Axis
                         title={xFunction + " vs. " + yFunction}
                         xLabel={xFunction}
