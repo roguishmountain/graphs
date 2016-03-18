@@ -12,62 +12,98 @@ export class LinePlot extends React.Component<any, any> {
         super();
     }
 
-    renderArea() {
+    renderLine() {
         let { xFunc, yFunc, xScale, yScale, padding } = this.calculate();
-        let { data } = this.props;
-        let newData = _.sortBy(data, (d) => xFunc(d));
         let graph = d3_shape.line()
             .x(i => xScale(xFunc(i)) + padding)
             .y(i => yScale(yFunc(i)));
 
-        let path:any = graph(newData);
+        let path: any = graph(_.sortBy(this.props.data, (d) => xFunc(d)));
         return (
             <path
                 d={path}
                 stroke="black"
-                strokeWidth="3"
+                strokeWidth="1"
                 fill={"none"}>
                 </path>
         )
     }
 
     renderPoints() {
-        let { xFunc, yFunc, xScale, yScale, padding, gFunc } = this.calculate();
+        let { xFunc, yFunc, xScale, yScale, padding, gFunc, cFunc } = this.calculate();
         let { data, scaleType } = this.props;
         let colorScale = undefined;
 
         // defaults to ordinal, change or keep?
-        if(scaleType == "continuous") {
+        if (scaleType == "continuous") {
             colorScale = d3_scale.scaleCool()
-            .domain([d3.min(data, gFunc), d3.max(data, gFunc)]);
+                .domain([d3.min(data, gFunc), d3.max(data, gFunc)]);
         }
         else {
-            colorScale = d3_scale.scaleCategory10()
-            .domain(data.map((d, k) => {
-                return gFunc(d);
-            }));
+            colorScale = d3_scale.scaleCategory20b()
+                .domain(data.map((d, k) => {
+                    return gFunc(d);
+                }));
         }
 
         return data.map((d, k) => {
-            let x = xScale(xFunc(d)) + padding;
-            let y = yScale(yFunc(d));
+            if (cFunc(d)) {
+                return (
+                    <g key={"g" + k}>
+                        <title>{this.objectString(d)}</title>
+                            <circle key={"c" + k}
+                                cx={xScale(xFunc(d)) + padding}
+                                cy={yScale(yFunc(d)) }
+                                r={4}
+                                fill={cFunc(d) }
+                                onClick={this.handleClick.bind(this) }>
+                                {k}
+                            </circle>
+                    </g>
+                )
+            }
+            else {
+                return (
+                    <g key={"g" + k}>
+                        <title>{this.objectString(d)}</title>
+                            <circle key={"c" + k}
+                                cx={xScale(xFunc(d)) + padding}
+                                cy={yScale(yFunc(d)) }
+                                r={4}
+                                fill={colorScale(gFunc(d)) }
+                                onClick={this.handleClick.bind(this) }>
+                                {k}
+                            </circle>
+                     </g>
+                )
+            }
+        })
+    }
+
+    objectString(d) {
+        let str = "";
+        for (let key in d) {
+            str += key + ": " + d[key] + "\n";
+        }
+        return str.trim();
+    }
+
+    renderLabels() {
+        let { xFunc, yFunc, xScale, yScale, padding, lFunc } = this.calculate();
+        return this.props.data.map((d, k) => {
             return (
-                <circle key={"c" + k}
-                    cx={x}
-                    cy={y}
-                    r={5}
-                    fill={colorScale(gFunc(d))}
-                    onClick={this.handleClick.bind(this) }>
-                    {k}
-                    </circle>
+                <text key={"b" + k}
+                    fill={"red"}
+                    x={xScale(xFunc(d)) + padding}
+                    y={yScale(yFunc(d)) - 2}>
+                    {lFunc(d) }
+                    </text>
             )
         })
     }
 
-    handleClick(evt){
-        let id = evt.target.innerHTML;
-        console.log(id);
-        console.log(this.props.data[id]);
+    handleClick(evt) {
+        console.log(this.props.data[evt.target.innerHTML]);
     }
 
     calculate() {
@@ -77,10 +113,11 @@ export class LinePlot extends React.Component<any, any> {
         let yFunc: any = new Function("entry", "return " + this.props.yFunction);
         let gFunc: any = new Function("entry", "return " + this.props.groupFunction);
         let lFunc: any = new Function("entry", this.props.labelFunction);
+        let cFunc: any = new Function("entry", this.props.colorFunction);
 
         let xScale = d3_scale.scaleLinear()
             .domain([d3.min(data, xFunc), d3.max(data, xFunc)])
-            .range([20, height]);
+            .range([20, width - 100]);
         let yScale = d3_scale.scaleLinear()
             .domain([d3.min(data, yFunc), d3.max(data, yFunc)])
             .range([height, 20]);
@@ -88,7 +125,7 @@ export class LinePlot extends React.Component<any, any> {
         let padding = 45;
 
         return {
-            xScale, yScale, xFunc, yFunc, padding, gFunc, lFunc
+            xScale, yScale, xFunc, yFunc, padding, gFunc, lFunc, cFunc
         };
     }
 
@@ -99,9 +136,10 @@ export class LinePlot extends React.Component<any, any> {
 
         return (
             <div>
-                <svg width="1024" height="700">
-                    {this.renderArea() }
+                <svg width={this.props.width} height={700}>
+                    {this.renderLine() }
                     {this.renderPoints() }
+                    {this.renderLabels() }
                     <ContinuousAxis
                         title={xFunction + " vs. " + yFunction}
                         xLabel={xFunction}

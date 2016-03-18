@@ -118,8 +118,8 @@ export class TextBox extends React.Component<any, Data> {
     renderAreaGraph() {
         if (this.state.valid){
             return (
-                <LinePlot width={5000}
-                    height={400}
+                <LinePlot width={1000}
+                    height={500}
                     yLabel="yLabel"
                     xLabel="xLabel"
                     title="Title"
@@ -185,10 +185,12 @@ export class TextBox extends React.Component<any, Data> {
                     Use Color By Value Function
                 </button>
                 <p></p>
-                <input type="radio" name="scale" value="ordinal" onChange={this.handleRSubmit.bind(this)}>
-                    {"Ordinal"} </input>
-                <input type="radio" name="scale" value="continuous" onChange={this.handleRSubmit.bind(this)}>
-                    {"Continuous"} </input>
+                <input type="radio" name="scale" value="ordinal"
+                onChange={this.handleRSubmit.bind(this)}>
+                </input><text>Ordinal</text>
+                <input type="radio" name="scale" value="continuous"
+                onChange={this.handleRSubmit.bind(this)}>
+                </input><text>Continuous</text>
                 <p></p>
                 <textarea
                 ref="textArea4"
