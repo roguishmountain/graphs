@@ -8,10 +8,21 @@ import { ContinuousAxis } from './ContinuousAxis';
 
 export class LinePlot extends React.Component<any, any> {
 
+    /**
+     * Sets up the props
+     *
+     * @constructor
+     */
     constructor(props) {
         super();
     }
 
+    /**
+     * Creates a path based on the data
+     *
+     * @returns
+     *      the line of the plotted data
+     */
     renderLine() {
         let { xFunc, yFunc, xScale, yScale, padding } = this.calculate();
         let graph = d3_shape.line()
@@ -29,6 +40,12 @@ export class LinePlot extends React.Component<any, any> {
         )
     }
 
+    /**
+     * Creates a scatterplot based on the data
+     *
+     * @returns
+     *      the scatterplot of the data
+     */
     renderPoints() {
         let { xFunc, yFunc, xScale, yScale, padding, gFunc, cFunc } = this.calculate();
         let { data, scaleType } = this.props;
@@ -54,9 +71,11 @@ export class LinePlot extends React.Component<any, any> {
                             <circle key={"c" + k}
                                 cx={xScale(xFunc(d)) + padding}
                                 cy={yScale(yFunc(d)) }
-                                r={4}
+                                r={5}
                                 fill={cFunc(d) }
-                                onClick={this.handleClick.bind(this) }>
+                                onClick={this.handleClick.bind(this)}
+                                onMouseEnter={this.handleMouseEnter.bind(this)}
+                                onMouseLeave={this.handleMouseLeave.bind(this, cFunc(d))}>
                                 {k}
                             </circle>
                     </g>
@@ -69,9 +88,11 @@ export class LinePlot extends React.Component<any, any> {
                             <circle key={"c" + k}
                                 cx={xScale(xFunc(d)) + padding}
                                 cy={yScale(yFunc(d)) }
-                                r={4}
+                                r={5}
                                 fill={colorScale(gFunc(d)) }
-                                onClick={this.handleClick.bind(this) }>
+                                onClick={this.handleClick.bind(this) }
+                                onMouseEnter={this.handleMouseEnter.bind(this)}
+                                onMouseLeave={this.handleMouseLeave.bind(this, colorScale(gFunc(d)))}>
                                 {k}
                             </circle>
                      </g>
@@ -80,6 +101,12 @@ export class LinePlot extends React.Component<any, any> {
         })
     }
 
+    /**
+     * Formatted string for the tooltip
+     *
+     * @returns
+     *      the string to be used for the tooltip
+     */
     objectString(d) {
         let str = "";
         for (let key in d) {
@@ -88,6 +115,12 @@ export class LinePlot extends React.Component<any, any> {
         return str.trim();
     }
 
+    /**
+     * Create labels based on the label function
+     *
+     * @returns
+     *      labels for data points
+     */
     renderLabels() {
         let { xFunc, yFunc, xScale, yScale, padding, lFunc } = this.calculate();
         return this.props.data.map((d, k) => {
@@ -102,10 +135,43 @@ export class LinePlot extends React.Component<any, any> {
         })
     }
 
+    /**
+     * Prints data for element on click
+     *
+     * @parameter
+     *      click event
+     */
     handleClick(evt) {
         console.log(this.props.data[evt.target.innerHTML]);
     }
 
+    /**
+     * changes color of element on mouse enter
+     *
+     * @parameter
+     *      mouse enter event
+     */
+    handleMouseEnter(evt) {
+        evt.target.setAttribute("fill", "gray");
+    }
+
+    /**
+     * changes color element on mouse leave
+     *
+     * @parameter
+     *      mouse leave event
+     */
+    handleMouseLeave(str, evt) {
+        evt.target.setAttribute("fill", str);
+    }
+
+    /**
+     * Calculate x and y function, the x and y scales,
+     * and sets the padding
+     *
+     * @returns
+     *      xScale, yScale, xFunc, yFunc, padding, gFunc, lFunc, cFunc
+     */
     calculate() {
         let { height, width, data } = this.props;
 
@@ -124,11 +190,20 @@ export class LinePlot extends React.Component<any, any> {
 
         let padding = 45;
 
+        yScale.nice();
+        xScale.nice();
+
         return {
             xScale, yScale, xFunc, yFunc, padding, gFunc, lFunc, cFunc
         };
     }
 
+    /**
+     * Renders the virtual DOM for the graph and labels
+     *
+     * @returns
+     *      svg elements for the graph and labels
+     */
     render() {
 
         let { xScale, yScale } = this.calculate();

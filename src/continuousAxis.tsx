@@ -23,9 +23,6 @@ export class ContinuousAxis extends React.Component<AxisLines, any> {
 
         this.padding = 45;
         this.tickLen = 15;
-
-        props.yScale.nice();
-        props.xScale.nice();
     }
 
 
@@ -123,22 +120,20 @@ export class ContinuousAxis extends React.Component<AxisLines, any> {
      */
     renderXTicks() {
         return this.props.xScale.ticks().map((d, k) => {
-
-            let xCoord = this.props.xScale(d);
             let sWidth = 1;
 
             return (
                 <g key={"g"+k}>
                     <line key={"tick"+k}
-                    x1={xCoord + (this.padding)}
+                    x1={this.props.xScale(d) + (this.padding)}
                     y1={this.props.yScale.range()[0]}
-                    x2={xCoord + (this.padding)}
+                    x2={this.props.xScale(d) + (this.padding)}
                     y2={this.props.yScale.range()[0] + this.tickLen}
                     strokeWidth={sWidth}
                     stroke="black" />
 
                     <text key={"txt"+k}
-                    x={xCoord + (this.padding)}
+                    x={this.props.xScale(d) + (this.padding)}
                     y={this.props.yScale.range()[0] + (this.tickLen * 2)}
                     style={{textAnchor: "middle"}}
                     fill="black">

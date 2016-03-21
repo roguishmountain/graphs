@@ -145,7 +145,7 @@ export class BarGraph extends React.Component<any, any> {
      * and sets the padding
      *
      * @returns
-     *      x scale, y scale, x function, y function, padding
+     *      xScale, yScale, xFunc, yFunc, padding, gFunc, cFunc, lFunc
      */
     calculate() {
         let { height, width, data } = this.props;
