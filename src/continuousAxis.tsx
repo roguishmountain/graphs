@@ -20,7 +20,6 @@ export class ContinuousAxis extends React.Component<AxisLines, any> {
         this.tickLen = 15;
     }
 
-
     /**
      * Calculate the length of the x and y axis
      * using the maximum scaled values
@@ -43,10 +42,10 @@ export class ContinuousAxis extends React.Component<AxisLines, any> {
                 stroke="black" />
 
                 <line
-                x1={(this.props.padding) + this.props.xScale.range()[0]}
-                y1={this.props.xScale.range()[0]}
-                x2={(this.props.padding) + this.props.xScale.range()[0]}
-                y2={this.props.yScale.range()[0]}
+                x1={this.props.xScale.range()[0] + (this.props.padding)}
+                y1={this.props.yScale.range()[0]}
+                x2={this.props.xScale.range()[0] + (this.props.padding)}
+                y2={this.props.yScale.range()[1]}
                 strokeWidth={sWidth}
                 stroke="black" />
             </g>
@@ -64,11 +63,11 @@ export class ContinuousAxis extends React.Component<AxisLines, any> {
     renderLabels() {
         // since y = 0 is at top of screen
         // the min y value would be down the screen
-        let labelLenY = 20;
+        let labelLenY = 10;
 
         //transform for y axis label
         let transformY = "rotate(-90, " + labelLenY + ","
-            + (this.props.yScale.range()[0])/2 + ")";
+                + (this.props.yScale.range()[0])/2 + ")";
 
         // padding is to allow room for axis labels and tick marks
         // scaling 0 because 0 != 0 after it's scaled

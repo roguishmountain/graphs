@@ -60,17 +60,17 @@ export class Axis extends React.Component<AxisLines, any> {
      *      x axis label, y axis label, and title
      */
     renderLabels() {
-        let xMax2 = this.props.xScale.range()[1] / 2;
         // since y = 0 is at top of screen
         // the min y value would be down the screen
         let labelLenY = 10;
 
         //transform for y axis label
-        let transformY = "rotate(-90, " + labelLenY + "," + (this.props.yScale.range()[0])/2 + ")";
+        let transformY = "rotate(-90, " + labelLenY + ","
+                    + (this.props.yScale.range()[0])/2 + ")";
         return (
             <g>
                 <text
-                x={(this.props.padding) + 0 + xMax2}
+                x={(this.props.xScale.range()[1]) / 2}
                 y={this.props.yScale.range()[0] + this.tickLen * 3}
                 fill="black"
                 style={{textAnchor: "middle"}}>
@@ -87,7 +87,7 @@ export class Axis extends React.Component<AxisLines, any> {
                 </text>
 
                 <text
-                x={(this.props.padding) + 20 + xMax2}
+                x={(this.props.xScale.range()[1]) / 2}
                 y={this.props.yScale.range()[1]}
                 fill="black"
                 style={{textAnchor: "middle"}}>
