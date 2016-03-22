@@ -159,7 +159,8 @@ export class StackedBarGraph extends React.Component<any, any> {
                         xLabel={xFunction}
                         yLabel={yFunction}
                         xScale={xScale}
-                        yScale={yScale}>
+                        yScale={yScale}
+                        padding={45}>
                         </Axis>
                     </svg>
                 </div>

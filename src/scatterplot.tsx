@@ -133,7 +133,8 @@ export class ScatterPlot extends React.Component<Plot, any> {
                         xLabel={"xLabel"}
                         yLabel={"yLabel"}
                         xScale={this.xScale}
-                        yScale={this.yScale}>
+                        yScale={this.yScale}
+                        padding={45}>
                     </Axis>
                 </svg>
            </div>

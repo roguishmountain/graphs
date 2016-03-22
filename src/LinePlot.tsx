@@ -29,6 +29,7 @@ export class LinePlot extends React.Component<any, any> {
             .x(i => xScale(xFunc(i)) + padding)
             .y(i => yScale(yFunc(i)));
 
+        // data needs to be sorted to draw the path for the line
         let path: any = graph(_.sortBy(this.props.data, (d) => xFunc(d)));
         return (
             <path
@@ -51,19 +52,20 @@ export class LinePlot extends React.Component<any, any> {
         let { data, scaleType } = this.props;
         let colorScale = undefined;
 
-        // defaults to ordinal, change or keep?
-        if (scaleType == "continuous") {
+        // defaults to ordinal
+        if (scaleType == "continuous") { //continuous color scale
             colorScale = d3_scale.scaleCool()
                 .domain([d3.min(data, gFunc), d3.max(data, gFunc)]);
         }
-        else {
-            colorScale = d3_scale.scaleCategory20b()
+        else { //ordinal color scale
+            colorScale = d3_scale.scaleCategory20()
                 .domain(data.map((d, k) => {
                     return gFunc(d);
                 }));
         }
 
         return data.map((d, k) => {
+            // if a color is specified for the data point
             if (cFunc(d)) {
                 return (
                     <g key={"g" + k}>
@@ -206,7 +208,7 @@ export class LinePlot extends React.Component<any, any> {
      */
     render() {
 
-        let { xScale, yScale } = this.calculate();
+        let { xScale, yScale, padding } = this.calculate();
         let { xFunction, yFunction } = this.props;
 
         return (
@@ -220,7 +222,8 @@ export class LinePlot extends React.Component<any, any> {
                         xLabel={xFunction}
                         yLabel={yFunction}
                         xScale={xScale}
-                        yScale={yScale}>
+                        yScale={yScale}
+                        padding={padding}>
                         </ContinuousAxis>
                     </svg>
                 </div>

@@ -1,9 +1,7 @@
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
 import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
-import * as _ from 'lodash';
 import { Axis } from './axis';
 
 export class BarGraph extends React.Component<any, any> {
@@ -137,7 +135,7 @@ export class BarGraph extends React.Component<any, any> {
             .style.margin.replace(/[a-zA-Z]/g, ""));
         let bar = Math.floor((evt.clientX - arrPath[0] - margin
             + window.scrollX) / (xScale.bandwidth()));
-        console.log("data", this.dataSet[id][bar]);
+        console.log(this.dataSet[id][bar]);
     }
 
     /**
@@ -154,21 +152,7 @@ export class BarGraph extends React.Component<any, any> {
         let yFunc: any = new Function("entry", "return " + this.props.yFunction);
         let gFunc: any = new Function("entry", "return " + this.props.groupFunction);
         let lFunc: any = new Function("entry", this.props.labelFunction);
-
-        let colorChoices = this.props.colorFunction.split("\n");
-        this.colorOptions = [];
-        colorChoices = colorChoices.map((d, k) => {
-            let splt = d.split(/\s*->\s*/);
-            this.colorOptions = this.colorOptions.concat(splt[1]);
-            if (splt[0] != "else") {
-                return "if(" + this.props.groupFunction + "=='" + splt[0]
-                    + "') return '" + splt[1] + "';";
-            }
-            else {
-                return "else return '" + splt[1] + "';";
-            }
-        });
-        let cFunc: any = new Function("entry", colorChoices.join("\n"));
+        let cFunc: any = new Function("entry", this.props.colorFunction);
         let xScale = d3_scale.scaleBand()
             .domain(this.props.data.map((d, k) => {
                 return xFunc(d).toString();
@@ -179,6 +163,17 @@ export class BarGraph extends React.Component<any, any> {
             .domain([0, d3.max(data, yFunc)])
             .range([height, 20]);
         let padding = 45;
+
+        this.colorOptions = [];
+        let match = /return\s"(.*)"\s*/ig;
+        let result = undefined;
+        do {
+            result = match.exec(this.props.colorFunction);
+            if(result != null){
+                this.colorOptions = this.colorOptions.concat(result[1]);
+            }
+        } while(result != null);
+
         return {
             xScale, yScale, xFunc, yFunc, padding, gFunc, cFunc, lFunc
         };
@@ -191,12 +186,12 @@ export class BarGraph extends React.Component<any, any> {
      *      svg elements for the graph and labels
      */
     render() {
-        let { xScale, yScale } = this.calculate();
+        let { xScale, yScale, padding } = this.calculate();
         let { xFunction, yFunction } = this.props;
 
         return (
             <div>
-                <svg width="5000" height="500">
+                <svg width="5000" height="600">
                     {this.renderTopline()}
                     {this.renderLabel()}
                     <Axis
@@ -204,7 +199,8 @@ export class BarGraph extends React.Component<any, any> {
                         xLabel={xFunction}
                         yLabel={yFunction}
                         xScale={xScale}
-                        yScale={yScale}>
+                        yScale={yScale}
+                        padding={padding}>
                         </Axis>
                     </svg>
                 </div>

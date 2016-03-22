@@ -1,10 +1,5 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import * as d3_scale from 'd3-scale';
-import * as d3_shape from 'd3-shape';
-import * as d3 from 'd3';
-import * as _ from 'lodash';
-import { Axis } from './axis';
 import { AreaGraph } from './areagraph';
 import { BarGraph } from './BarGraph';
 import { StackedBarGraph } from './StackedBarGraph';
@@ -113,12 +108,12 @@ export class TextBox extends React.Component<any, Data> {
      * data if valid or no data message if not valid
      *
      * @returns
-     *      virtual DOM for Curvegraph or no data message
+     *      virtual DOM for graph or no data message
      */
     renderAreaGraph() {
         if (this.state.valid){
             return (
-                <LinePlot width={1000}
+                <BarGraph width={1000}
                     height={500}
                     yLabel="yLabel"
                     xLabel="xLabel"
@@ -130,9 +125,8 @@ export class TextBox extends React.Component<any, Data> {
                     colorFunction={this.state.colorFunction}
                     labelFunction={this.state.labelFunction}
                     scaleType={this.state.scaleType}>
-                </LinePlot>
+                </BarGraph>
             )
-
         }
         else{
             return (
@@ -141,6 +135,72 @@ export class TextBox extends React.Component<any, Data> {
                 </h4>
             )
         }
+    }
+
+    /**
+     * DOM of the UI to set values
+     *
+     * @returns
+     *      virtual DOM for UI
+     */
+    renderUI() {
+        return (
+            <g>
+            <text>ex: entry.id  </text>
+                <textarea
+                    ref="textArea1"
+                    type="text">
+                    </textarea>
+                <button type="button" onClick={this.handleXSubmit.bind(this) }>
+                    Use X Value Function
+                    </button>
+                <p></p>
+                <text>ex: entry.duration  </text>
+                <textarea
+                    ref="textArea2"
+                    type="text">
+                    </textarea>
+                <button type="button" onClick={this.handleYSubmit.bind(this) }>
+                    Use Y Value Function
+                    </button>
+                <p></p>
+                <text>ex: entry.status  </text>
+                <textarea
+                    ref="textArea3"
+                    type="text">
+                    </textarea>
+                <button type="button" onClick={this.handleGroupSubmit.bind(this) }>
+                    Use Color By Value Function
+                    </button>
+                <p></p>
+                <text>Color by Value Function Data type </text>
+                <br></br>
+                <input type="radio" name="scale" value="ordinal"
+                    onChange={this.handleRSubmit.bind(this) }>
+                    </input><text>Ordinal</text>
+                <input type="radio" name="scale" value="continuous"
+                    onChange={this.handleRSubmit.bind(this) }>
+                    </input><text>Continuous</text>
+                <p></p>
+                <textarea
+                    ref="textArea4"
+                    rows={5} cols={50}
+                    type="text">
+                    </textarea>
+                <button type="button" onClick={this.handleColorSubmit.bind(this) }>
+                    Use Color Value Function
+                    </button>
+                <p></p>
+                <textarea
+                    ref="textArea5"
+                    rows={5} cols={50}
+                    type="text">
+                    </textarea>
+                <button type="button" onClick={this.handleLabelSubmit.bind(this) }>
+                    Use Label Function
+                    </button>
+                </g>
+        )
     }
 
     /**
@@ -157,59 +217,12 @@ export class TextBox extends React.Component<any, Data> {
                 rows={10} cols={75}
                 type="text">
                 </textarea>
-                <button type="button" onClick={this.handleSubmit.bind(this)}>
+                <button type="button" onClick={this.handleSubmit.bind(this) }>
                     Parse
-                </button>
-                {this.renderAreaGraph()}
-                <textarea
-                ref="textArea1"
-                type="text">
-                </textarea>
-                <button type="button" onClick={this.handleXSubmit.bind(this)}>
-                    Use X Value Function
-                </button>
-                <p></p>
-                <textarea
-                ref="textArea2"
-                type="text">
-                </textarea>
-                <button type="button" onClick={this.handleYSubmit.bind(this)}>
-                    Use Y Value Function
-                </button>
-                <p></p>
-                <textarea
-                ref="textArea3"
-                type="text">
-                </textarea>
-                <button type="button" onClick={this.handleGroupSubmit.bind(this)}>
-                    Use Color By Value Function
-                </button>
-                <p></p>
-                <input type="radio" name="scale" value="ordinal"
-                onChange={this.handleRSubmit.bind(this)}>
-                </input><text>Ordinal</text>
-                <input type="radio" name="scale" value="continuous"
-                onChange={this.handleRSubmit.bind(this)}>
-                </input><text>Continuous</text>
-                <p></p>
-                <textarea
-                ref="textArea4"
-                rows={5} cols={50}
-                type="text">
-                </textarea>
-                <button type="button" onClick={this.handleColorSubmit.bind(this)}>
-                    Use Color Value Function
-                </button>
-                <p></p>
-                <textarea
-                ref="textArea5"
-                rows={5} cols={50}
-                type="text">
-                </textarea>
-                <button type="button" onClick={this.handleLabelSubmit.bind(this)}>
-                    Use Label Function
-                </button>
-            </div>
+                    </button>
+                {this.renderAreaGraph() }
+                {this.renderUI() }
+                </div>
         )
     }
 }

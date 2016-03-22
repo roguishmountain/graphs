@@ -64,7 +64,8 @@ export class AreaGraph extends React.Component<any, any> {
                         xLabel={"xLabel"}
                         yLabel={"yLabel"}
                         xScale={xScale}
-                        yScale={yScale}>
+                        yScale={yScale}
+                        padding={45}>
                         </Axis>
                     </svg>
                 </div>

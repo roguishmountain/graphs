@@ -1,15 +1,13 @@
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-import * as _ from 'lodash';
 
 interface AxisLines { yLabel: any,
                       xLabel: any,
                       title: any,
                       xScale: any,
-                      yScale: any }
+                      yScale: any
+                      padding: number}
 
 export class ContinuousAxis extends React.Component<AxisLines, any> {
-    padding: number;
     tickLen: number;
 
     /**
@@ -19,9 +17,6 @@ export class ContinuousAxis extends React.Component<AxisLines, any> {
      */
     constructor(props){
         super();
-        let { xScale, yScale } = props;
-
-        this.padding = 45;
         this.tickLen = 15;
     }
 
@@ -40,17 +35,17 @@ export class ContinuousAxis extends React.Component<AxisLines, any> {
         return (
             <g>
                 <line
-                x1={this.props.xScale.range()[0] + (this.padding)}
+                x1={this.props.xScale.range()[0] + (this.props.padding)}
                 y1={this.props.yScale.range()[0]}
-                x2={this.props.xScale.range()[1] + (this.padding)}
+                x2={this.props.xScale.range()[1] + (this.props.padding)}
                 y2={this.props.yScale.range()[0]}
                 strokeWidth={sWidth}
                 stroke="black" />
 
                 <line
-                x1={(this.padding) + this.props.xScale.range()[0]}
+                x1={(this.props.padding) + this.props.xScale.range()[0]}
                 y1={this.props.xScale.range()[0]}
-                x2={(this.padding) + this.props.xScale.range()[0]}
+                x2={(this.props.padding) + this.props.xScale.range()[0]}
                 y2={this.props.yScale.range()[0]}
                 strokeWidth={sWidth}
                 stroke="black" />
@@ -67,7 +62,6 @@ export class ContinuousAxis extends React.Component<AxisLines, any> {
      *      x axis label, y axis label, and title
      */
     renderLabels() {
-        let xMax2 = this.props.xScale.range()[1] / 2;
         // since y = 0 is at top of screen
         // the min y value would be down the screen
         let labelLenY = 20;
@@ -81,7 +75,7 @@ export class ContinuousAxis extends React.Component<AxisLines, any> {
         return (
             <g>
                 <text
-                x={(this.padding) + this.props.xScale(0) + xMax2}
+                x={(this.props.xScale.range()[1]) / 2}
                 y={this.props.yScale.range()[0] + this.tickLen * 3}
                 fill="black"
                 style={{textAnchor: "middle"}}>
@@ -98,7 +92,7 @@ export class ContinuousAxis extends React.Component<AxisLines, any> {
                 </text>
 
                 <text
-                x={(this.padding) + this.props.xScale(0) + xMax2}
+                x={(this.props.xScale.range()[1]) / 2}
                 y={this.props.yScale.range()[1]}
                 fill="black"
                 style={{textAnchor: "middle"}}>
@@ -125,15 +119,15 @@ export class ContinuousAxis extends React.Component<AxisLines, any> {
             return (
                 <g key={"g"+k}>
                     <line key={"tick"+k}
-                    x1={this.props.xScale(d) + (this.padding)}
+                    x1={this.props.xScale(d) + (this.props.padding)}
                     y1={this.props.yScale.range()[0]}
-                    x2={this.props.xScale(d) + (this.padding)}
+                    x2={this.props.xScale(d) + (this.props.padding)}
                     y2={this.props.yScale.range()[0] + this.tickLen}
                     strokeWidth={sWidth}
                     stroke="black" />
 
                     <text key={"txt"+k}
-                    x={this.props.xScale(d) + (this.padding)}
+                    x={this.props.xScale(d) + (this.props.padding)}
                     y={this.props.yScale.range()[0] + (this.tickLen * 2)}
                     style={{textAnchor: "middle"}}
                     fill="black">
@@ -158,7 +152,7 @@ export class ContinuousAxis extends React.Component<AxisLines, any> {
 
         return this.props.yScale.ticks().map((d, k) => {
 
-            let xCoord = (this.padding) + 20;
+            let xCoord = (this.props.padding) + 20;
             let yCoord = this.props.yScale(d);
             let sWidth = 1;
 
