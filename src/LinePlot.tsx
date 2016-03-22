@@ -14,7 +14,7 @@ export class LinePlot extends React.Component<any, any> {
      * @constructor
      */
     constructor(props) {
-        super();
+        super(props);
     }
 
     /**
@@ -30,7 +30,7 @@ export class LinePlot extends React.Component<any, any> {
             .y(i => yScale(yFunc(i)));
 
         // data needs to be sorted to draw the path for the line
-        let path: any = graph(_.sortBy(this.props.data, (d) => xFunc(d)));
+        let path: any = graph(_.sortBy(this.props.data, xFunc));
         return (
             <path
                 d={path}
@@ -65,42 +65,23 @@ export class LinePlot extends React.Component<any, any> {
         }
 
         return data.map((d, k) => {
-            // if a color is specified for the data point
-            if (cFunc(d)) {
-                return (
-                    <g key={"g" + k}>
-                        <title>{this.objectString(d)}</title>
-                            <circle key={"c" + k}
-                                cx={xScale(xFunc(d)) + padding}
-                                cy={yScale(yFunc(d)) }
-                                r={5}
-                                fill={cFunc(d) }
-                                onClick={this.handleClick.bind(this)}
-                                onMouseEnter={this.handleMouseEnter.bind(this)}
-                                onMouseLeave={this.handleMouseLeave.bind(this, cFunc(d))}>
-                                {k}
-                            </circle>
-                    </g>
-                )
-            }
-            else {
-                return (
-                    <g key={"g" + k}>
-                        <title>{this.objectString(d)}</title>
-                            <circle key={"c" + k}
-                                cx={xScale(xFunc(d)) + padding}
-                                cy={yScale(yFunc(d)) }
-                                r={5}
-                                fill={colorScale(gFunc(d)) }
-                                onClick={this.handleClick.bind(this) }
-                                onMouseEnter={this.handleMouseEnter.bind(this)}
-                                onMouseLeave={this.handleMouseLeave.bind(this, colorScale(gFunc(d)))}>
-                                {k}
-                            </circle>
-                     </g>
-                )
-            }
-        })
+            let fillColor = cFunc(d) || colorScale(gFunc(d));
+
+            return (<g key={"g" + k}>
+                <title>{this.objectString(d)}</title>
+                <circle
+                    key={"c" + k}
+                    cx={xScale(xFunc(d)) + padding}
+                    cy={yScale(yFunc(d))}
+                    r={5}
+                    fill={fillColor}
+                    onClick={this.handleClick.bind(this)}
+                    onMouseEnter={this.handleMouseEnter.bind(this)}
+                    onMouseLeave={this.handleMouseLeave.bind(this, fillColor)}>
+                    {k}
+                </circle>
+            </g>);
+        });
     }
 
     /**
@@ -131,8 +112,8 @@ export class LinePlot extends React.Component<any, any> {
                     fill={"red"}
                     x={xScale(xFunc(d)) + padding}
                     y={yScale(yFunc(d)) - 2}>
-                    {lFunc(d) }
-                    </text>
+                    {lFunc(d)}
+                </text>
             )
         })
     }
