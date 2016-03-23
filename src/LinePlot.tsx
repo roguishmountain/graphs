@@ -24,13 +24,13 @@ export class LinePlot extends React.Component<any, any> {
      *      the line of the plotted data
      */
     renderLine() {
-        let { xFunc, yFunc, xScale, yScale, padding } = this.calculate();
+        let { xValues, yValues, xScale, yScale, padding } = this.calculate();
         let graph = d3_shape.line()
-            .x(i => xScale(xFunc(i)) + padding)
-            .y(i => yScale(yFunc(i)));
+            .x(i => xScale(xValues(i)) + padding)
+            .y(i => yScale(yValues(i)));
 
         // data needs to be sorted to draw the path for the line
-        let path: any = graph(_.sortBy(this.props.data, xFunc));
+        let path: any = graph(_.sortBy(this.props.data, xValues));
         return (
             <path
                 d={path}
@@ -48,31 +48,31 @@ export class LinePlot extends React.Component<any, any> {
      *      the scatterplot of the data
      */
     renderPoints() {
-        let { xFunc, yFunc, xScale, yScale, padding, gFunc, cFunc } = this.calculate();
+        let { xValues, yValues, xScale, yScale, padding, colorBy, colorSpecific } = this.calculate();
         let { data, scaleType } = this.props;
         let colorScale = undefined;
 
         // defaults to ordinal
         if (scaleType == "continuous") { //continuous color scale
             colorScale = d3_scale.scaleCool()
-                .domain([d3.min(data, gFunc), d3.max(data, gFunc)]);
+                .domain([d3.min(data, colorBy), d3.max(data, colorBy)]);
         }
         else { //ordinal color scale
             colorScale = d3_scale.scaleCategory20()
                 .domain(data.map((d, k) => {
-                    return gFunc(d);
+                    return colorBy(d);
                 }));
         }
 
         return data.map((d, k) => {
-            let fillColor = cFunc(d) || colorScale(gFunc(d));
+            let fillColor = colorSpecific(d) || colorScale(colorBy(d));
 
             return (<g key={"g" + k}>
                 <title>{JSON.stringify(d)}</title>
                 <circle
                     key={"c" + k}
-                    cx={xScale(xFunc(d)) + padding}
-                    cy={yScale(yFunc(d))}
+                    cx={xScale(xValues(d)) + padding}
+                    cy={yScale(yValues(d))}
                     r={5}
                     fill={fillColor}
                     onClick={this.handleClick.bind(this)}
@@ -91,14 +91,14 @@ export class LinePlot extends React.Component<any, any> {
      *      labels for data points
      */
     renderLabels() {
-        let { xFunc, yFunc, xScale, yScale, padding, lFunc } = this.calculate();
+        let { xValues, yValues, xScale, yScale, padding, labelFunction } = this.calculate();
         return this.props.data.map((d, k) => {
             return (
                 <text key={"b" + k}
                     fill={"red"}
-                    x={xScale(xFunc(d)) + padding}
-                    y={yScale(yFunc(d)) - 2}>
-                    {lFunc(d)}
+                    x={xScale(xValues(d)) + padding}
+                    y={yScale(yValues(d)) - 2}>
+                    {labelFunction(d)}
                 </text>
             )
         })
@@ -139,22 +139,22 @@ export class LinePlot extends React.Component<any, any> {
      * and sets the padding
      *
      * @returns
-     *      xScale, yScale, xFunc, yFunc, padding, gFunc, lFunc, cFunc
+     *      xScale, yScale, xFunc, yFunc, padding, colorBy, labelFunction, colorSpecific
      */
     calculate() {
         let { height, width, data } = this.props;
 
-        let xFunc: any = new Function("entry", "return " + this.props.xFunction);
-        let yFunc: any = new Function("entry", "return " + this.props.yFunction);
-        let gFunc: any = new Function("entry", "return " + this.props.groupFunction);
-        let lFunc: any = new Function("entry", this.props.labelFunction);
-        let cFunc: any = new Function("entry", this.props.colorFunction);
+        let xValues: any = new Function("entry", "return " + this.props.xValues);
+        let yValues: any = new Function("entry", "return " + this.props.yValues);
+        let colorBy: any = new Function("entry", "return " + this.props.colorBy);
+        let labelFunction: any = new Function("entry", this.props.labelFunction);
+        let colorSpecific: any = new Function("entry", this.props.colorSpecific);
 
         let xScale = d3_scale.scaleLinear()
-            .domain([d3.min(data, xFunc), d3.max(data, xFunc)])
+            .domain([d3.min(data, xValues), d3.max(data, xValues)])
             .range([20, width - 100]);
         let yScale = d3_scale.scaleLinear()
-            .domain([d3.min(data, yFunc), d3.max(data, yFunc)])
+            .domain([d3.min(data, yValues), d3.max(data, yValues)])
             .range([height, 20]);
 
         let padding = 45;
@@ -163,7 +163,7 @@ export class LinePlot extends React.Component<any, any> {
         xScale.nice();
 
         return {
-            xScale, yScale, xFunc, yFunc, padding, gFunc, lFunc, cFunc
+            xScale, yScale, xValues, yValues, padding, colorBy, labelFunction, colorSpecific
         };
     }
 
@@ -176,7 +176,7 @@ export class LinePlot extends React.Component<any, any> {
     render() {
 
         let { xScale, yScale, padding } = this.calculate();
-        let { xFunction, yFunction } = this.props;
+        let { xValues, yValues } = this.props;
 
         return (
             <div>
@@ -185,9 +185,9 @@ export class LinePlot extends React.Component<any, any> {
                     {this.renderPoints()}
                     {this.renderLabels()}
                     <ContinuousAxis
-                        title={xFunction + " vs. " + yFunction}
-                        xLabel={xFunction}
-                        yLabel={yFunction}
+                        title={xValues + " vs. " + yValues}
+                        xLabel={xValues}
+                        yLabel={yValues}
                         xScale={xScale}
                         yScale={yScale}
                         padding={padding}>

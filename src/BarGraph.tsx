@@ -23,18 +23,25 @@ export class BarGraph extends React.Component<any, any> {
      *      virtual DOM for text labels
      */
     renderLabel() {
-        let { xFunc, yFunc, xScale, yScale, padding, lFunc } = this.calculate();
+        let { xValues, yValues, xScale, yScale, padding, labelFunction } = this.calculate();
         return this.props.data.map((d, k) => {
             return (
                 <text key={"b" + k}
-                    x={xScale(xFunc(d)) + padding}
-                    y={yScale(yFunc(d)) - 2}>
-                    {lFunc(d)}
+                    x={xScale(xValues(d)) + padding}
+                    y={yScale(yValues(d)) - 2}>
+                    {labelFunction(d)}
                     </text>
             )
         })
     }
 
+    VHLpath(index, xValues, yValues, xScale, yScale, padding) {
+        return (" V " + yScale(yValues(this.props.data[index]))
+            + " H " + (xScale(xValues(this.props.data[index])) + xScale.bandwidth() + padding)
+            + " L " + (xScale(xValues(this.props.data[index])) + xScale.bandwidth() + padding)
+            + " " + yScale(0)
+        );
+    }
     /**
      * Calculate the svg path for the graph
      *
@@ -42,52 +49,34 @@ export class BarGraph extends React.Component<any, any> {
      *      virtual DOM for svg path
      */
     renderTopline() {
-        let { xFunc, yFunc, xScale, yScale, padding, gFunc, cFunc } = this.calculate();
+        let { xValues, yValues, xScale, yScale, padding, colorBy, colorSpecific } = this.calculate();
         let path = "";
         let tempData = [];
         let color = [];
         this.newPath = [];
         this.dataSet = [];
         for (let i = 0; i < this.props.data.length; i++) {
+            let fill = colorSpecific(this.props.data[i]) || colorBy(this.props.data[i]);
+
             if (i == 0) {
-                if (cFunc(this.props.data[i]) == "undefined" || cFunc(this.props.data[i]) == undefined) {
-                    color = color.concat([gFunc(this.props.data[i])]);
-                }
-                else {
-                    color = color.concat([cFunc(this.props.data[i])]);
-                }
-                path += "M " + (xScale(xFunc(this.props.data[i]))
-                    + padding) + " " + yScale(i)
-                    + " V " + yScale(yFunc(this.props.data[i]))
-                    + " H " + (xScale(xFunc(this.props.data[i])) + xScale.bandwidth() + padding)
-                    + " L " + (xScale(xFunc(this.props.data[i])) + xScale.bandwidth() + padding)
-                    + " " + yScale(0);
+                color = color.concat([fill]);
+                path += "M " + (xScale(xValues(this.props.data[i])) + padding) + " " + yScale(i)
+                    + this.VHLpath(i, xValues, yValues, xScale, yScale, padding);
                 tempData = tempData.concat(this.props.data[i]);
             }
-            else if (i > 0 && gFunc(this.props.data[i]) == gFunc(this.props.data[i - 1])) {
-                path += " V " + yScale(yFunc(this.props.data[i]))
-                    + " H " + (xScale(xFunc(this.props.data[i])) + xScale.bandwidth() + padding)
-                    + " L " + (xScale(xFunc(this.props.data[i])) + xScale.bandwidth() + padding)
-                    + " " + yScale(0);
+            else if (colorBy(this.props.data[i]) == colorBy(this.props.data[i - 1])) {
+                path += this.VHLpath(i, xValues, yValues, xScale, yScale, padding);
                 tempData = tempData.concat(this.props.data[i]);
             }
             else {
-                if (cFunc(this.props.data[i]) == "undefined" || cFunc(this.props.data[i]) == undefined) {
-                    color = color.concat([gFunc(this.props.data[i])]);
-                }
-                else {
-                    color = color.concat([cFunc(this.props.data[i])]);
-                }
+                color = color.concat([fill]);
                 this.dataSet = this.dataSet.concat([tempData]);
                 tempData = [];
                 tempData = tempData.concat(this.props.data[i]);
                 this.newPath = this.newPath.concat(path);
                 path = "";
-                path += "M " + (xScale(xFunc(this.props.data[i])) + padding) + " " + yScale(0)
-                    + " V " + yScale(yFunc(this.props.data[i]))
-                    + " H " + (xScale(xFunc(this.props.data[i])) + xScale.bandwidth() + padding)
-                    + " L " + (xScale(xFunc(this.props.data[i])) + xScale.bandwidth() + padding)
-                    + " " + yScale(0);
+                path += "M " + (xScale(xValues(this.props.data[i])) + padding) + " " + yScale(0)
+                    + this.VHLpath(i, xValues, yValues, xScale, yScale, padding);
             }
         }
 
@@ -143,24 +132,23 @@ export class BarGraph extends React.Component<any, any> {
      * and sets the padding
      *
      * @returns
-     *      xScale, yScale, xFunc, yFunc, padding, gFunc, cFunc, lFunc
+     *      xScale, yScale, xValues, yValues, padding, colorBy, colorSpecific, labelFunction
      */
     calculate() {
         let { height, width, data } = this.props;
-
-        let xFunc: any = new Function("entry", "return " + this.props.xFunction);
-        let yFunc: any = new Function("entry", "return " + this.props.yFunction);
-        let gFunc: any = new Function("entry", "return " + this.props.groupFunction);
-        let lFunc: any = new Function("entry", this.props.labelFunction);
-        let cFunc: any = new Function("entry", this.props.colorFunction);
+        let xValues: any = new Function("entry", "return " + this.props.xValues);
+        let yValues: any = new Function("entry", "return " + this.props.yValues);
+        let colorBy: any = new Function("entry", "return " + this.props.colorBy);
+        let labelFunction: any = new Function("entry", this.props.labelFunction);
+        let colorSpecific: any = new Function("entry", this.props.colorSpecific);
         let xScale = d3_scale.scaleBand()
             .domain(this.props.data.map((d, k) => {
-                return xFunc(d).toString();
+                return xValues(d).toString();
             }))
             .range([20, width]);
 
         let yScale = d3_scale.scaleLinear()
-            .domain([0, d3.max(data, yFunc)])
+            .domain([0, d3.max(data, yValues)])
             .range([height, 20]);
         let padding = 45;
 
@@ -168,14 +156,14 @@ export class BarGraph extends React.Component<any, any> {
         let match = /return\s"(.*)"\s*/ig;
         let result = undefined;
         do {
-            result = match.exec(this.props.colorFunction);
+            result = match.exec(this.props.colorSpecific);
             if(result != null){
                 this.colorOptions = this.colorOptions.concat(result[1]);
             }
         } while(result != null);
 
         return {
-            xScale, yScale, xFunc, yFunc, padding, gFunc, cFunc, lFunc
+            xScale, yScale, xValues, yValues, padding, colorBy, colorSpecific, labelFunction
         };
     }
 
@@ -187,7 +175,7 @@ export class BarGraph extends React.Component<any, any> {
      */
     render() {
         let { xScale, yScale, padding } = this.calculate();
-        let { xFunction, yFunction } = this.props;
+        let { xValues, yValues } = this.props;
 
         return (
             <div>
@@ -195,9 +183,9 @@ export class BarGraph extends React.Component<any, any> {
                     {this.renderTopline()}
                     {this.renderLabel()}
                     <Axis
-                        title={xFunction + " vs. " + yFunction}
-                        xLabel={xFunction}
-                        yLabel={yFunction}
+                        title={xValues + " vs. " + yValues}
+                        xLabel={xValues}
+                        yLabel={yValues}
                         xScale={xScale}
                         yScale={yScale}
                         padding={padding}>

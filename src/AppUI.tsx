@@ -8,17 +8,17 @@ import { LinePlot } from './LinePlot';
 interface Data {
     value?: any;
     valid?: boolean;
-    xFunction?: any;
-    yFunction?: any;
-    groupFunction?: any;
-    colorFunction?: any;
+    xValues?: any;
+    yValues?: any;
+    colorBy?: any;
+    colorSpecific?: any;
     labelFunction?: any;
     scaleType?: any;
 }
 
 class Predicate extends React.Component<any, any> {
 
-    handleSubmit(evt) {
+    handleSubmit(evt) { //colorSpecific
         let { bind, name } = this.props;
         bind.setState({[name]: bind[name].value});
     }
@@ -29,7 +29,7 @@ class Predicate extends React.Component<any, any> {
         return (
             <g>
                 <textarea
-                    ref={r => bind[name] = r}>
+                    ref={r => bind[name] = r} rows={5} cols={40}>
                 </textarea>
                 <button onClick={evt => this.handleSubmit(evt)}>
                     {this.props.children}
@@ -48,10 +48,10 @@ export class AppUI extends React.Component<any, Data> {
 
         let { data } = props;
         this.state = { value: [], valid: false,
-                       xFunction: "entry.id",
-                       yFunction: "entry.duration",
-                       groupFunction: "entry.status",
-                       colorFunction: "" };
+                       xValues: "entry.id",
+                       yValues: "entry.duration",
+                       colorBy: "entry.status",
+                       colorSpecific: "" };
     }
 
     /**
@@ -88,19 +88,16 @@ export class AppUI extends React.Component<any, Data> {
     renderAreaGraph() {
         if (this.state.valid){
             return (
-                <LinePlot width={1000}
+                <BarGraph width={1000}
                     height={500}
-                    yLabel="yLabel"
-                    xLabel="xLabel"
-                    title="Title"
                     data={this.state.value}
-                    xFunction={this.state.xFunction}
-                    yFunction={this.state.yFunction}
-                    groupFunction={this.state.groupFunction}
-                    colorFunction={this.state.colorFunction}
+                    xValues={this.state.xValues}
+                    yValues={this.state.yValues}
+                    colorBy={this.state.colorBy}
+                    colorSpecific={this.state.colorSpecific}
                     labelFunction={this.state.labelFunction}
                     scaleType={this.state.scaleType}>
-                </LinePlot>
+                </BarGraph>
             )
         }
         else {
@@ -121,11 +118,11 @@ export class AppUI extends React.Component<any, Data> {
     renderUI() {
         return (
             <g>
-                <Predicate name='xFunction' bind={this}>Use X Value Function</Predicate>
+                <Predicate name='xValues' bind={this}>Use X Value Function</Predicate>
                 <p></p>
-                <Predicate name='yFunction' bind={this}>Use Y Value Function</Predicate>
+                <Predicate name='yValues' bind={this}>Use Y Value Function</Predicate>
                 <p></p>
-                <Predicate name='groupFunction' bind={this}>Use Color by Value Function</Predicate>
+                <Predicate name='colorBy' bind={this}>Use Color by Value Function</Predicate>
                 <p></p>
                 <br></br>
                 <input type="radio" name="scale" value="ordinal"
@@ -135,7 +132,7 @@ export class AppUI extends React.Component<any, Data> {
                     onChange={this.handleRadioSubmit.bind(this)}>
                     </input><text>Continuous</text>
                 <p></p>
-                <Predicate name='colorFunction' bind={this}>Use Color Value Function</Predicate>
+                <Predicate name='colorSpecific' bind={this}>Use Color Value Function</Predicate>
                 <p></p>
                 <Predicate name='labelFunction' bind={this}>Use Label Function</Predicate>
             </g>
