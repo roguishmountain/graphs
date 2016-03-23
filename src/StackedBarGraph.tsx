@@ -4,7 +4,7 @@ import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
 import * as _ from 'lodash';
-import { Axis } from './axis';
+import { Axis } from './Axis';
 
 export class StackedBarGraph extends React.Component<any, any> {
     xVals;
@@ -12,7 +12,7 @@ export class StackedBarGraph extends React.Component<any, any> {
      * @constructor
      */
     constructor(props) {
-        super();
+        super(props);
     }
 
     /**
@@ -76,7 +76,7 @@ export class StackedBarGraph extends React.Component<any, any> {
                 fill={"white"}
                 stroke="black"
                 strokeWidth={1}
-                onClick={this.handleClick.bind(this) }>
+                onClick={this.handleClick.bind(this)}>
                 </path>
         )
     }

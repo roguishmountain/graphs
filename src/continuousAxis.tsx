@@ -16,7 +16,7 @@ export class ContinuousAxis extends React.Component<AxisLines, any> {
      * @constructor
      */
     constructor(props){
-        super();
+        super(props);
         this.tickLen = 15;
     }
 

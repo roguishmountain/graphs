@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
-import { Axis } from './axis';
+import { Axis } from './Axis';
 
 export class BarGraph extends React.Component<any, any> {
     dataSet;
@@ -13,7 +13,7 @@ export class BarGraph extends React.Component<any, any> {
      * @constructor
      */
     constructor(props) {
-        super();
+        super(props);
     }
 
     /**

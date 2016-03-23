@@ -3,13 +3,13 @@ import * as ReactDOM from 'react-dom';
 import * as d3 from 'd3';
 import * as _ from 'lodash';
 
-import { Axis } from './axis';
-import { ScatterPlot } from './scatterplot';
+import { Axis } from './Axis';
+import { ScatterPlot } from './ScatterPlot';
 
 
 class World extends React.Component<any, any> {
     constructor(props) {
-        super();
+        super(props);
         this.state = {
             color: "green",
             count: 0,

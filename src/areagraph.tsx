@@ -4,12 +4,12 @@ import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
 import * as _ from 'lodash';
-import { Axis } from './axis';
+import { Axis } from './Axis';
 
 export class AreaGraph extends React.Component<any, any> {
 
     constructor(props) {
-        super();
+        super(props);
     }
 
     renderArea() {
@@ -58,7 +58,7 @@ export class AreaGraph extends React.Component<any, any> {
         return (
             <div>
                 <svg width="1024" height="700">
-                    {this.renderArea() }
+                    {this.renderArea()}
                     <Axis
                         title={"Title"}
                         xLabel={"xLabel"}

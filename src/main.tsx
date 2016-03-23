@@ -1,11 +1,11 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { TextBox } from './textbox';
+import { AppUI } from './AppUI';
 
 class Main extends React.Component<any, any> {
     render() {
         return (
-            <TextBox data={[]}/>
+            <AppUI data={[]}/>
         );
     }
 }

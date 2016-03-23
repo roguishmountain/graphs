@@ -68,7 +68,7 @@ export class LinePlot extends React.Component<any, any> {
             let fillColor = cFunc(d) || colorScale(gFunc(d));
 
             return (<g key={"g" + k}>
-                <title>{this.objectString(d)}</title>
+                <title>{JSON.stringify(d)}</title>
                 <circle
                     key={"c" + k}
                     cx={xScale(xFunc(d)) + padding}
@@ -82,20 +82,6 @@ export class LinePlot extends React.Component<any, any> {
                 </circle>
             </g>);
         });
-    }
-
-    /**
-     * Formatted string for the tooltip
-     *
-     * @returns
-     *      the string to be used for the tooltip
-     */
-    objectString(d) {
-        let str = "";
-        for (let key in d) {
-            str += key + ": " + d[key] + "\n";
-        }
-        return str.trim();
     }
 
     /**
@@ -195,9 +181,9 @@ export class LinePlot extends React.Component<any, any> {
         return (
             <div>
                 <svg width={this.props.width} height={700}>
-                    {this.renderLine() }
-                    {this.renderPoints() }
-                    {this.renderLabels() }
+                    {this.renderLine()}
+                    {this.renderPoints()}
+                    {this.renderLabels()}
                     <ContinuousAxis
                         title={xFunction + " vs. " + yFunction}
                         xLabel={xFunction}

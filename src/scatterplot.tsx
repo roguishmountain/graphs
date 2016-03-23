@@ -3,7 +3,7 @@ import * as ReactDOM from 'react-dom';
 import * as d3 from 'd3';
 import * as _ from 'lodash';
 
-import { Axis } from './axis';
+import { Axis } from './Axis';
 
 interface Point { x: any,
                   y: any,
@@ -28,7 +28,7 @@ export class ScatterPlot extends React.Component<Plot, any> {
      * @constructor
      */
     constructor(props) {
-        super();
+        super(props);
 
         let { data, width, height,
               yLabel, xLabel, title } = props;
