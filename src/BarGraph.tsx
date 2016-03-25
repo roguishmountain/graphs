@@ -3,6 +3,7 @@ import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
 import { Axis } from './Axis';
+import { reduce, isEmpty, last, dropRight, concat } from 'lodash';
 
 export class BarGraph extends React.Component<any, any> {
     dataSet;
@@ -35,74 +36,69 @@ export class BarGraph extends React.Component<any, any> {
         })
     }
 
-    VHLpath(index, xValues, yValues, xScale, yScale, padding) {
-        return (" V " + yScale(yValues(this.props.data[index]))
-            + " H " + (xScale(xValues(this.props.data[index])) + xScale.bandwidth() + padding)
-            + " L " + (xScale(xValues(this.props.data[index])) + xScale.bandwidth() + padding)
-            + " " + yScale(0)
-        );
-    }
     /**
      * Calculate the svg path for the graph
      *
      * @returns
      *      virtual DOM for svg path
      */
-    renderTopline() {
-        let { xValues, yValues, xScale, yScale, padding, colorBy, colorSpecific } = this.calculate();
-        let path = "";
-        let tempData = [];
-        let color = [];
-        this.newPath = [];
-        this.dataSet = [];
-        for (let i = 0; i < this.props.data.length; i++) {
-            let fill = colorSpecific(this.props.data[i]) || colorBy(this.props.data[i]);
+    createPath(data: any[]) {
+        let { xValues, yValues, xScale, yScale, padding, colorBy } = this.calculate();
+        let bandwidth = xScale.bandwidth();
 
-            if (i == 0) {
-                color = color.concat([fill]);
-                path += "M " + (xScale(xValues(this.props.data[i])) + padding) + " " + yScale(i)
-                    + this.VHLpath(i, xValues, yValues, xScale, yScale, padding);
-                tempData = tempData.concat(this.props.data[i]);
-            }
-            else if (colorBy(this.props.data[i]) == colorBy(this.props.data[i - 1])) {
-                path += this.VHLpath(i, xValues, yValues, xScale, yScale, padding);
-                tempData = tempData.concat(this.props.data[i]);
-            }
-            else {
-                color = color.concat([fill]);
-                this.dataSet = this.dataSet.concat([tempData]);
-                tempData = [];
-                tempData = tempData.concat(this.props.data[i]);
-                this.newPath = this.newPath.concat(path);
-                path = "";
-                path += "M " + (xScale(xValues(this.props.data[i])) + padding) + " " + yScale(0)
-                    + this.VHLpath(i, xValues, yValues, xScale, yScale, padding);
-            }
+        function path(i): string {
+            const V = y => ` V ${y}`;
+            const H = x => `H ${x}`;
+            const L = (x, y) => `L ${x} ${y}`;
+            const M = (x, y) => ` M ${x} ${y}`;
+            const line = (x) => x.join(" ");
+            return line([
+                M(xScale(xValues(i)) + padding, yScale(0)),
+                V(yScale(yValues(i))),
+                H(xScale(xValues(i)) + bandwidth + padding),
+                L(xScale(xValues(i)) + bandwidth + padding, yScale(0))]);
         }
+        let prev = undefined;
+        const result = reduce(data,
+                (output: {"paths": string[], "data": {}[][]}, cur) => {
+                // empty case
+                if (isEmpty(output)) {
+                    prev = cur;
+                    return {"paths": [path(cur)], "data": [[cur]]};
+                }
 
-        let colorScale = d3_scale.scaleCategory10()
-            .domain(color.map((d, k) => {
-                return d;
-            }));
-        color = color.map((d, k) => {
-            if (this.colorOptions.indexOf(d) > -1) {
-                return d;
-            }
-            else {
-                return colorScale(d);
-            }
-        });
+                // append onto pending
+                let pending: string = last(output["paths"]);
+                let pendingData: {} = last(output["data"]);
+                let p: string = path(cur);
+                let shouldAppend = (prev, curr) => colorBy(prev) !== colorBy(curr);
 
-        this.dataSet = this.dataSet.concat([tempData]);
-        this.newPath = this.newPath.concat(path);
-        return this.newPath.map((d, k) => {
+                if (shouldAppend(prev, cur)) {
+                    prev = cur;
+                    return {"paths": concat(output["paths"], p), "data": concat(output["data"], [[cur]])};
+                }
+                // append after pending
+                prev = cur;
+
+                return { "paths": concat(dropRight(output["paths"]), [pending.concat(p)]),
+                         "data": concat(dropRight(output["data"]), [pendingData, cur]) };
+            }, {});
+
+            console.log(result);
+        // let colorScale = d3_scale.scaleCategory10()
+        //     .domain(data.map((d, k) => {
+        //         return colorBy(d).toString();
+        //     }))
+        //  console.log(colorScale.domain());
+
+        return result["paths"].map((d, k) => {
             return (
                 <path key={"b" + k}
                     d={d}
-                    fill={color[k]}
+                    fill={"white"}
                     stroke="black"
                     strokeWidth={1}
-                    onClick={this.handleClick.bind(this)}>
+                    onClick={this.handleClick.bind(this) }>
                     {k}
                     </path>
             )
@@ -141,6 +137,10 @@ export class BarGraph extends React.Component<any, any> {
         let colorBy: any = new Function("entry", "return " + this.props.colorBy);
         let labelFunction: any = new Function("entry", this.props.labelFunction);
         let colorSpecific: any = new Function("entry", this.props.colorSpecific);
+        let filter: any = new Function("entry", this.props.filter);
+        let reject: any = new Function("entry", this.props.reject);
+        let sample: any = this.props.sample;
+
         let xScale = d3_scale.scaleBand()
             .domain(this.props.data.map((d, k) => {
                 return xValues(d).toString();
@@ -163,7 +163,7 @@ export class BarGraph extends React.Component<any, any> {
         } while(result != null);
 
         return {
-            xScale, yScale, xValues, yValues, padding, colorBy, colorSpecific, labelFunction
+            xScale, yScale, xValues, yValues, padding, colorBy, colorSpecific, labelFunction, reject, filter, sample
         };
     }
 
@@ -180,7 +180,7 @@ export class BarGraph extends React.Component<any, any> {
         return (
             <div>
                 <svg width="5000" height="600">
-                    {this.renderTopline()}
+                    {this.createPath(this.props.data)}
                     {this.renderLabel()}
                     <Axis
                         title={xValues + " vs. " + yValues}
