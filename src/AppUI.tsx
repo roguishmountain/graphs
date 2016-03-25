@@ -14,6 +14,9 @@ interface Data {
     colorSpecific?: any;
     labelFunction?: any;
     scaleType?: any;
+    filter?: any;
+    reject?: any;
+    sample?: any;
 }
 
 class Predicate extends React.Component<any, any> {
@@ -29,7 +32,7 @@ class Predicate extends React.Component<any, any> {
         return (
             <g>
                 <textarea
-                    ref={r => bind[name] = r} rows={5} cols={40}>
+                    ref={r => bind[name] = r} rows={5} cols={20}>
                 </textarea>
                 <button onClick={evt => this.handleSubmit(evt)}>
                     {this.props.children}
@@ -91,12 +94,15 @@ export class AppUI extends React.Component<any, Data> {
                 <BarGraph width={1000}
                     height={500}
                     data={this.state.value}
-                    xValues={this.state.xValues}
-                    yValues={this.state.yValues}
+                    xValues={new Function("entry", "return " + this.state.xValues)}
+                    yValues={new Function("entry", "return " + this.props.yValues)}
                     colorBy={this.state.colorBy}
                     colorSpecific={this.state.colorSpecific}
                     labelFunction={this.state.labelFunction}
-                    scaleType={this.state.scaleType}>
+                    scaleType={this.state.scaleType}
+                    filter={this.state.filter}
+                    reject={this.state.reject}
+                    sample={this.state.sample}>
                 </BarGraph>
             )
         }
@@ -119,12 +125,9 @@ export class AppUI extends React.Component<any, Data> {
         return (
             <g>
                 <Predicate name='xValues' bind={this}>Use X Value Function</Predicate>
-                <p></p>
                 <Predicate name='yValues' bind={this}>Use Y Value Function</Predicate>
                 <p></p>
                 <Predicate name='colorBy' bind={this}>Use Color by Value Function</Predicate>
-                <p></p>
-                <br></br>
                 <input type="radio" name="scale" value="ordinal"
                     onChange={this.handleRadioSubmit.bind(this)}>
                     </input><text>Ordinal</text>
@@ -133,8 +136,11 @@ export class AppUI extends React.Component<any, Data> {
                     </input><text>Continuous</text>
                 <p></p>
                 <Predicate name='colorSpecific' bind={this}>Use Color Value Function</Predicate>
-                <p></p>
                 <Predicate name='labelFunction' bind={this}>Use Label Function</Predicate>
+                <p></p>
+                <Predicate name='filter' bind={this}>Use filter</Predicate>
+                <Predicate name='reject' bind={this}>Use reject</Predicate>
+                <Predicate name='sample' bind={this}>Use Sample Size</Predicate>
             </g>
         )
     }

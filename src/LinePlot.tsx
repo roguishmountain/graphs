@@ -4,7 +4,7 @@ import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
 import * as _ from 'lodash';
-import { ContinuousAxis } from './ContinuousAxis';
+import { Axis } from './Axis';
 
 export class LinePlot extends React.Component<any, any> {
 
@@ -149,6 +149,9 @@ export class LinePlot extends React.Component<any, any> {
         let colorBy: any = new Function("entry", "return " + this.props.colorBy);
         let labelFunction: any = new Function("entry", this.props.labelFunction);
         let colorSpecific: any = new Function("entry", this.props.colorSpecific);
+        let filter: any = new Function("entry", this.props.filter);
+        let reject: any = new Function("entry", this.props.reject);
+        let sample: any = this.props.sample;
 
         let xScale = d3_scale.scaleLinear()
             .domain([d3.min(data, xValues), d3.max(data, xValues)])
@@ -163,7 +166,7 @@ export class LinePlot extends React.Component<any, any> {
         xScale.nice();
 
         return {
-            xScale, yScale, xValues, yValues, padding, colorBy, labelFunction, colorSpecific
+            xScale, yScale, xValues, yValues, padding, colorBy, labelFunction, colorSpecific, filter, reject, sample
         };
     }
 
@@ -184,14 +187,14 @@ export class LinePlot extends React.Component<any, any> {
                     {this.renderLine()}
                     {this.renderPoints()}
                     {this.renderLabels()}
-                    <ContinuousAxis
+                    <Axis
                         title={xValues + " vs. " + yValues}
                         xLabel={xValues}
                         yLabel={yValues}
                         xScale={xScale}
                         yScale={yScale}
                         padding={padding}>
-                        </ContinuousAxis>
+                        </Axis>
                     </svg>
                 </div>
         )

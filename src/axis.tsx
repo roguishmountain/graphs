@@ -108,22 +108,27 @@ export class Axis extends React.Component<AxisLines, any> {
      *      text (the label of the value)
      */
     renderXTicks() {
+        let x = undefined;
         return this.props.xScale.domain().map((d, k) => {
-
-            let xCoord = this.props.xScale(d);
+            if (typeof this.props.xScale.bandwidth === "function") {
+                x = this.props.xScale(d) + (this.props.padding) + (this.props.xScale.bandwidth() / 2);
+            }
+            else {
+                x = this.props.xScale(d) + (this.props.padding);
+            }
             let sWidth = 1;
             return (
                 <g key={"g"+k}>
                     <line key={"tick"+k}
-                    x1={xCoord + (this.props.padding) + (this.props.xScale.bandwidth() / 2)}
+                    x1={x}
                     y1={this.props.yScale.range()[0]}
-                    x2={xCoord + (this.props.padding) + (this.props.xScale.bandwidth() / 2)}
+                    x2={x}
                     y2={this.props.yScale.range()[0] + this.tickLen}
                     strokeWidth={sWidth}
                     stroke="black" />
 
                     <text key={"txt"+k}
-                    x={xCoord + (this.props.padding) + (this.props.xScale.bandwidth() / 2)}
+                    x={x}
                     y={this.props.yScale.range()[0] + (this.tickLen * 2)}
                     style={{textAnchor: "middle"}}
                     fill="black">
