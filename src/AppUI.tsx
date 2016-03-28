@@ -95,13 +95,13 @@ export class AppUI extends React.Component<any, Data> {
                     height={500}
                     data={this.state.value}
                     xValues={new Function("entry", "return " + this.state.xValues)}
-                    yValues={new Function("entry", "return " + this.props.yValues)}
-                    colorBy={this.state.colorBy}
-                    colorSpecific={this.state.colorSpecific}
-                    labelFunction={this.state.labelFunction}
+                    yValues={new Function("entry", "return " + this.state.yValues)}
+                    colorBy={new Function("entry", "return " + this.state.colorBy)}
+                    colorSpecific={new Function("entry", this.state.colorSpecific)}
+                    labelFunction={new Function("entry", this.state.labelFunction)}
                     scaleType={this.state.scaleType}
-                    filter={this.state.filter}
-                    reject={this.state.reject}
+                    filter={new Function("entry", this.state.filter)}
+                    reject={new Function("entry", this.state.reject)}
                     sample={this.state.sample}>
                 </BarGraph>
             )
