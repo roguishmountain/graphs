@@ -3,7 +3,9 @@ import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
 import { Axis } from './Axis';
-import { concat, dropRight, isEmpty, isEqual, last, reduce, sampleSize } from 'lodash';
+import { concat, dropRight, filter, reject, isEmpty, isEqual,
+         last, reduce, sampleSize, split } from 'lodash';
+import * as _ from 'lodash';
 
 interface State {
     groups?: any;
@@ -14,7 +16,12 @@ interface State {
     sample?: number;
     scaleType?: any;
     padding?: number;
-    colorOptions?: any;
+    colorBy?: Function;
+    xValues?: any;
+    yValues?: any;
+    labelFunction?: Function;
+    colorSpecific?: Function;
+    filterreject?: any;
 }
 
 interface Props {
@@ -26,8 +33,7 @@ interface Props {
     yValues: any;
     labelFunction: Function;
     colorSpecific: Function;
-    filter: Function;
-    reject: Function;
+    filterreject: any;
     sample: number;
     scaleType: any;
 }
@@ -39,16 +45,21 @@ export class BarGraph extends React.Component<Props, State> {
      */
     constructor(props) {
         super(props);
-        let data = this.sampleData(this.props.data, this.props.sample);
-        let s = this.calculate(this.props);
+        let data = this.filterRejectData(this.props.data, this.props.filterreject);
+        data = this.sampleData(data, this.props.sample);
+        let s = this.calculate(this.props, data);
         let groups = this.dataToGroups(data, this.props.colorBy);
         let paths = this.groupsToPaths(groups, s, this.props);
+        let { sample, scaleType, colorBy, xValues,
+              yValues, labelFunction, colorSpecific, filterreject } = this.props;
 
-        this.state = Object.assign(s, { groups, paths, data });
+        this.state = Object.assign(s, { groups, paths, data,
+                     sample, scaleType, colorBy, xValues,
+                     yValues, labelFunction, colorSpecific, filterreject });
     }
 
     sampleData(data, sSize) {
-        if( sSize > 0 && sSize) {
+        if(sSize > 0 && sSize) {
             return sampleSize(data, sSize);
         }
         else {
@@ -57,12 +68,42 @@ export class BarGraph extends React.Component<Props, State> {
     }
 
     componentWillReceiveProps(nextProps) {
-        let s = this.calculate(nextProps);
-        let data = this.sampleData(nextProps.data, nextProps.sample);
+        let data = this.filterRejectData(nextProps.data, nextProps.filterreject);
+        data = this.sampleData(data, nextProps.sample);
+        let s = this.calculate(nextProps, data);
         let groups = this.dataToGroups(data, nextProps.colorBy);
         let paths = this.groupsToPaths(groups, s, nextProps);
 
-        this.setState(Object.assign(s, { groups, paths, data }));
+        let { sample, scaleType, colorBy, xValues,
+              yValues, labelFunction, colorSpecific, filterreject } = nextProps;
+
+        this.setState(Object.assign(s, { groups, paths, data,
+                      sample, scaleType, colorBy, xValues,
+                      yValues, labelFunction, colorSpecific, filterreject }));
+    }
+
+    /**
+     * Calculate x and y function, the x and y scales,
+     * and sets the padding
+     *
+     * @returns
+     *      xScale, yScale, xValues, yValues, padding, colorBy, colorSpecific, labelFunction
+     */
+    calculate(props, data) {
+        let { height, width, xValues, yValues, colorSpecific } = props;
+        let xScale = d3_scale.scaleBand()
+            .domain(data.map((d, k) => {
+                return xValues(d).toString();
+            }))
+            .range([20, width]);
+        let yScale = d3_scale.scaleLinear()
+            .domain([0, d3.max(data, yValues)])
+            .range([height, 20]);
+        let padding = 45;
+
+        return {
+            xValues, yValues, colorSpecific, xScale, yScale, padding
+        };
     }
 
     groupsToPaths(groups: any[][], calc, props) {
@@ -85,8 +126,19 @@ export class BarGraph extends React.Component<Props, State> {
         return groups.map((g, i) => g.map(path).join(' '));
     }
 
-    dataToGroups(data: any[], colorBy: Function) {
+    filterRejectData(data, filterReject) {
+        if (filterReject) {
+            return reduce(split(filterReject, /\n/), (output, cur) => {
+                let func = new Function("data", cur);
+                return func(output);
+            }, data);
+        }
+        else {
+            return data;
+        }
+    }
 
+    dataToGroups(data: any[], colorBy: Function) {
         return reduce(data,
             (output: {}[][], cur) => {
                 // empty case
@@ -123,66 +175,41 @@ export class BarGraph extends React.Component<Props, State> {
     }
 
     /**
-     * Calculate x and y function, the x and y scales,
-     * and sets the padding
-     *
-     * @returns
-     *      xScale, yScale, xValues, yValues, padding, colorBy, colorSpecific, labelFunction
-     */
-    calculate(props) {
-        let { height, width, data, xValues, yValues, colorSpecific } = props;
-
-        let xScale = d3_scale.scaleBand()
-            .domain(data.map((d, k) => {
-                return xValues(d).toString();
-            }))
-            .range([20, width]);
-
-        let yScale = d3_scale.scaleLinear()
-            .domain([0, d3.max(data, yValues)])
-            .range([height, 20]);
-
-        let padding = 45;
-
-        return {
-            xValues, yValues, colorSpecific, xScale, yScale, padding
-        };
-    }
-
-    /**
      * Calculate the extra labels for the graph
      *
      * @returns
      *      virtual DOM for text labels
      */
     renderLabel() {
-        let { data, labelFunction, xValues, yValues } = this.props;
+        let { data, labelFunction, xValues, yValues,
+              xScale, yScale, padding } = this.state;
         return data.map((d, k) => {
             return (
                 <text key={"b" + k}
-                    x={this.state.xScale(xValues(d)) + this.state.padding}
-                    y={this.state.yScale(yValues(d)) - 2}>
-                    {this.props.labelFunction(d)}
+                    x={xScale(xValues(d)) + padding}
+                    y={yScale(yValues(d)) - 2}>
+                    {labelFunction(d)}
                     </text>
             )
         })
     }
 
     renderPath() {
+        let { groups, colorBy, colorSpecific, paths } = this.state;
         let colorScale = d3_scale.scaleCategory10()
-            .domain(this.state.groups.map((g) => {
-                return this.props.colorBy((g[0]));
+            .domain(groups.map((g) => {
+                return colorBy((g[0]));
             }));
 
-        return this.state.paths.map((d, i) => {
-            let point = this.state.groups[i][0];
+        return paths.map((d, i) => {
+            let point = groups[i][0];
             return (
                 <path key={"b" + i}
                     d={d}
-                    fill={this.props.colorSpecific(point) || colorScale(this.props.colorBy(point))}
+                    fill={colorSpecific(point) || colorScale(colorBy(point))}
                     stroke="black"
                     strokeWidth={1}
-                    onClick={this.handleClick.bind(this) }>
+                    onClick={this.handleClick.bind(this)}>
                     {i}
                 </path>
             )
@@ -196,7 +223,7 @@ export class BarGraph extends React.Component<Props, State> {
      *      svg elements for the graph and labels
      */
     render() {
-        let { xValues, yValues } = this.props;
+        let { xValues, yValues, xScale, yScale, padding } = this.state;
         return (
             <div>
                 <svg width="5000" height="600">
@@ -206,9 +233,9 @@ export class BarGraph extends React.Component<Props, State> {
                         title={xValues + " vs. " + yValues}
                         xLabel={xValues}
                         yLabel={yValues}
-                        xScale={this.state.xScale}
-                        yScale={this.state.yScale}
-                        padding={this.state.padding}>
+                        xScale={xScale}
+                        yScale={yScale}
+                        padding={padding}>
                         </Axis>
                     </svg>
                 </div>

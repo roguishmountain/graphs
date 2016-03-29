@@ -14,8 +14,7 @@ interface Data {
     colorSpecific?: any;
     labelFunction?: any;
     scaleType?: any;
-    filter?: any;
-    reject?: any;
+    filterreject?: any;
     sample?: any;
 }
 
@@ -90,20 +89,21 @@ export class AppUI extends React.Component<any, Data> {
      */
     renderAreaGraph() {
         if (this.state.valid){
+            let { value, xValues, yValues, colorBy, colorSpecific, labelFunction,
+                  sample, scaleType, filterreject } = this.state;
             return (
-                <BarGraph width={1000}
+                <LinePlot width={1000}
                     height={500}
-                    data={this.state.value}
-                    xValues={new Function("entry", "return " + this.state.xValues)}
-                    yValues={new Function("entry", "return " + this.state.yValues)}
-                    colorBy={new Function("entry", "return " + this.state.colorBy)}
-                    colorSpecific={new Function("entry", this.state.colorSpecific)}
-                    labelFunction={new Function("entry", this.state.labelFunction)}
-                    scaleType={this.state.scaleType}
-                    filter={new Function("entry", this.state.filter)}
-                    reject={new Function("entry", this.state.reject)}
-                    sample={this.state.sample}>
-                </BarGraph>
+                    data={value}
+                    xValues={new Function("entry", "return " + xValues)}
+                    yValues={new Function("entry", "return " + yValues)}
+                    colorBy={new Function("entry", "return " + colorBy)}
+                    colorSpecific={new Function("entry", colorSpecific)}
+                    labelFunction={new Function("entry", labelFunction)}
+                    scaleType={scaleType}
+                    filterreject={filterreject}
+                    sample={sample}>
+                </LinePlot>
             )
         }
         else {
@@ -138,8 +138,7 @@ export class AppUI extends React.Component<any, Data> {
                 <Predicate name='colorSpecific' bind={this}>Use Color Value Function</Predicate>
                 <Predicate name='labelFunction' bind={this}>Use Label Function</Predicate>
                 <p></p>
-                <Predicate name='filter' bind={this}>Use filter</Predicate>
-                <Predicate name='reject' bind={this}>Use reject</Predicate>
+                <Predicate name='filterreject' bind={this}>Use filter/reject</Predicate>
                 <Predicate name='sample' bind={this}>Use Sample Size</Predicate>
             </g>
         )

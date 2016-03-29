@@ -30,21 +30,22 @@ export class Axis extends React.Component<AxisLines, any> {
     renderAxis() {
         // finds the range that the axis will span
         let sWidth = 1;
+        let { xScale, yScale, padding } = this.props;
         return (
             <g>
                 <line
-                x1={this.props.xScale.range()[0] + (this.props.padding)}
-                y1={this.props.yScale.range()[0]}
-                x2={this.props.xScale.range()[1] + (this.props.padding)}
-                y2={this.props.yScale.range()[0]}
+                x1={xScale.range()[0] + (padding)}
+                y1={yScale.range()[0]}
+                x2={xScale.range()[1] + (padding)}
+                y2={yScale.range()[0]}
                 strokeWidth={sWidth}
                 stroke="black" />
 
                 <line
-                x1={this.props.xScale.range()[0] + (this.props.padding)}
-                y1={this.props.yScale.range()[0]}
-                x2={this.props.xScale.range()[0] + (this.props.padding)}
-                y2={this.props.yScale.range()[1]}
+                x1={xScale.range()[0] + (padding)}
+                y1={yScale.range()[0]}
+                x2={xScale.range()[0] + (padding)}
+                y2={yScale.range()[1]}
                 strokeWidth={sWidth}
                 stroke="black" />
             </g>
@@ -63,35 +64,35 @@ export class Axis extends React.Component<AxisLines, any> {
         // since y = 0 is at top of screen
         // the min y value would be down the screen
         let labelLenY = 10;
-
+        let { yScale, xScale, xLabel, yLabel, title } = this.props;
         //transform for y axis label
         let transformY = "rotate(-90, " + labelLenY + ","
                     + (this.props.yScale.range()[0])/2 + ")";
         return (
             <g>
                 <text
-                x={(this.props.xScale.range()[1]) / 2}
-                y={this.props.yScale.range()[0] + this.tickLen * 3}
+                x={(xScale.range()[1]) / 2}
+                y={yScale.range()[0] + this.tickLen * 3}
                 fill="black"
                 style={{textAnchor: "middle"}}>
-                {this.props.xLabel}
+                {`${xLabel}`}
                 </text>
 
                 <text
                 x={0}
-                y={this.props.yScale.range()[0]/2}
+                y={yScale.range()[0]/2}
                 fill="black"
                 transform={transformY}
                 style={{textAnchor: "middle"}}>
-                {this.props.yLabel}
+                {`${yLabel}`}
                 </text>
 
                 <text
-                x={(this.props.xScale.range()[1]) / 2}
-                y={this.props.yScale.range()[1]}
+                x={(xScale.range()[1]) / 2}
+                y={yScale.range()[1]}
                 fill="black"
                 style={{textAnchor: "middle"}}>
-                {this.props.title}
+                {title}
                 </text>
             </g>
         )
@@ -109,27 +110,37 @@ export class Axis extends React.Component<AxisLines, any> {
      */
     renderXTicks() {
         let x = undefined;
-        return this.props.xScale.domain().map((d, k) => {
-            if (typeof this.props.xScale.bandwidth === "function") {
-                x = this.props.xScale(d) + (this.props.padding) + (this.props.xScale.bandwidth() / 2);
+        let tickMap = undefined;
+
+        let { xScale, yScale, padding } = this.props;
+        if( typeof xScale.ticks === "function" ) {
+            tickMap = xScale.ticks;
+        }
+        else {
+            tickMap = xScale.domain;
+        }
+
+        return tickMap().map((d, k) => {
+            if (typeof xScale.bandwidth === "function") {
+                x = xScale(d) + (padding) + (xScale.bandwidth() / 2);
             }
             else {
-                x = this.props.xScale(d) + (this.props.padding);
+                x = xScale(d) + (padding);
             }
             let sWidth = 1;
             return (
                 <g key={"g"+k}>
                     <line key={"tick"+k}
                     x1={x}
-                    y1={this.props.yScale.range()[0]}
+                    y1={yScale.range()[0]}
                     x2={x}
-                    y2={this.props.yScale.range()[0] + this.tickLen}
+                    y2={yScale.range()[0] + this.tickLen}
                     strokeWidth={sWidth}
                     stroke="black" />
 
                     <text key={"txt"+k}
                     x={x}
-                    y={this.props.yScale.range()[0] + (this.tickLen * 2)}
+                    y={yScale.range()[0] + (this.tickLen * 2)}
                     style={{textAnchor: "middle"}}
                     fill="black">
                     {d}
@@ -150,11 +161,11 @@ export class Axis extends React.Component<AxisLines, any> {
      *      text (the label of the value)
      */
     renderYTicks() {
+        let { yScale, padding } = this.props;
+        return yScale.ticks().map((d, k) => {
 
-        return this.props.yScale.ticks().map((d, k) => {
-
-            let xCoord = (this.props.padding) + 20;
-            let yCoord = this.props.yScale(d);
+            let xCoord = (padding) + 20;
+            let yCoord = yScale(d);
             let sWidth = 1;
 
             return (
