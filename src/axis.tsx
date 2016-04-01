@@ -75,7 +75,7 @@ export class Axis extends React.Component<AxisLines, any> {
                 y={yScale.range()[0] + this.tickLen * 3}
                 fill="black"
                 style={{textAnchor: "middle"}}>
-                {`${xLabel}`}
+                {xLabel.name}
                 </text>
 
                 <text
@@ -84,7 +84,7 @@ export class Axis extends React.Component<AxisLines, any> {
                 fill="black"
                 transform={transformY}
                 style={{textAnchor: "middle"}}>
-                {`${yLabel}`}
+                {yLabel.name}
                 </text>
 
                 <text

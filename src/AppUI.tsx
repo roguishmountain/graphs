@@ -4,25 +4,29 @@ import { AreaGraph } from './areagraph';
 import { BarGraph } from './BarGraph';
 import { StackedBarGraph } from './StackedBarGraph';
 import { LinePlot } from './LinePlot';
+import { State } from './State';
+import { merge, reduce, sampleSize, split } from 'lodash';
+import { functionChanged, dataChanged } from './Actions';
 
 interface Data {
-    value?: any;
     valid?: boolean;
-    xValues?: any;
-    yValues?: any;
-    colorBy?: any;
-    colorSpecific?: any;
-    labelFunction?: any;
-    scaleType?: any;
-    filterreject?: any;
-    sample?: any;
+    scaleType?: string;
 }
 
 class Predicate extends React.Component<any, any> {
 
-    handleSubmit(evt) { //colorSpecific
-        let { bind, name } = this.props;
-        bind.setState({[name]: bind[name].value});
+    handleDefaultSubmit(evt) {
+        let { bind, name, func } = this.props;
+        let value = bind[name].value;
+        let oldData = bind.data.value;
+        let submit = func || this.handleSubmit;
+        submit(name, value, JSON.parse(oldData));
+    }
+
+    handleSubmit(name, value) {
+        let fn = new Function('entry', `${value}`);
+        Object.defineProperty(fn, 'name', { value });
+        functionChanged(name, fn);
     }
 
     render() {
@@ -33,27 +37,21 @@ class Predicate extends React.Component<any, any> {
                 <textarea
                     ref={r => bind[name] = r} rows={5} cols={20}>
                 </textarea>
-                <button onClick={evt => this.handleSubmit(evt)}>
+                <button onClick={evt => this.handleDefaultSubmit(evt)}>
                     {this.props.children}
                 </button>
-           </g>
+            </g>
         );
     }
 }
 
-export class AppUI extends React.Component<any, Data> {
+export class AppUI extends React.Component<State, Data> {
     /**
      * @constructor
      */
     constructor(props) {
         super(props);
-
-        let { data } = props;
-        this.state = { value: [], valid: false,
-                       xValues: "entry.id",
-                       yValues: "entry.duration",
-                       colorBy: "entry.status",
-                       colorSpecific: "" };
+        this.state = { valid: false };
     }
 
     /**
@@ -63,13 +61,17 @@ export class AppUI extends React.Component<any, Data> {
      *      click event
      */
     handleSubmit(name, evt) {
-        try{
+        try {
             let parsedVal = JSON.parse(this[name].value);
-            this.setState({ value: parsedVal, valid: true });
+            let { sample, filterreject } = this.props;
+            this.setState({ valid: true });
+            parsedVal = this.filterRejectData("filterreject", filterreject,
+                this.sampleData("sample", sample, parsedVal));
+            functionChanged("data", parsedVal);
 
         } catch (SyntaxError) {
             console.log("NO");
-            this.setState({ value: [], valid: false });
+            this.setState({ valid: false });
         }
     }
 
@@ -87,23 +89,13 @@ export class AppUI extends React.Component<any, Data> {
      * @returns
      *      virtual DOM for graph or no data message
      */
-    renderAreaGraph() {
-        if (this.state.valid){
-            let { value, xValues, yValues, colorBy, colorSpecific, labelFunction,
-                  sample, scaleType, filterreject } = this.state;
+    renderGraph() {
+        if (this.state.valid) {
+            let s = { height: 500, width: 1000 };
             return (
-                <LinePlot width={1000}
-                    height={500}
-                    data={value}
-                    xValues={new Function("entry", "return " + xValues)}
-                    yValues={new Function("entry", "return " + yValues)}
-                    colorBy={new Function("entry", "return " + colorBy)}
-                    colorSpecific={new Function("entry", colorSpecific)}
-                    labelFunction={new Function("entry", labelFunction)}
-                    scaleType={scaleType}
-                    filterreject={filterreject}
-                    sample={sample}>
-                </LinePlot>
+                <StackedBarGraph
+                    {...Object.assign(s, this.props, this.state.scaleType)}
+                    />
             )
         }
         else {
@@ -138,10 +130,31 @@ export class AppUI extends React.Component<any, Data> {
                 <Predicate name='colorSpecific' bind={this}>Use Color Value Function</Predicate>
                 <Predicate name='labelFunction' bind={this}>Use Label Function</Predicate>
                 <p></p>
-                <Predicate name='filterreject' bind={this}>Use filter/reject</Predicate>
-                <Predicate name='sample' bind={this}>Use Sample Size</Predicate>
+                <Predicate name='filterreject' bind={this} func={this.filterRejectData}>Use filter/reject</Predicate>
+                <Predicate name='sample' bind={this} func={this.sampleData}>Use Sample Size</Predicate>
             </g>
         )
+    }
+
+    sampleData(name, n, data) {
+        let newData = (n && n > 0) ? sampleSize(data, n) : data;
+        dataChanged(name, n, newData);
+        return newData;
+    }
+
+    filterRejectData(name, filterReject, data) {
+        let newData = undefined;
+        if (filterReject) {
+            newData = reduce(split(filterReject, /\n/), (output, cur) => {
+                let func = new Function("data", cur);
+                return func(output);
+            }, data);
+        }
+        else {
+            newData = data;
+        }
+        dataChanged(name, filterReject, newData);
+        return newData;
     }
 
     /**
@@ -160,7 +173,7 @@ export class AppUI extends React.Component<any, Data> {
                 <button onClick={this.handleSubmit.bind(this, "data")}>
                     Parse
                     </button>
-                {this.renderAreaGraph()}
+                {this.renderGraph()}
                 {this.renderUI()}
                 </div>
         )

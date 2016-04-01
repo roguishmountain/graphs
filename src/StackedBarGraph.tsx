@@ -5,14 +5,32 @@ import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
 import * as _ from 'lodash';
 import { Axis } from './Axis';
+import { State } from './State';
+import { concat, dropRight, isEmpty, isEqual,
+         last, merge, reduce, split } from 'lodash';
 
-export class StackedBarGraph extends React.Component<any, any> {
-    xVals;
+interface Data {
+    padding?: number;
+    groups?: {}[];
+    paths?: string;
+    xScale?: any;
+    yScale?: any;
+}
+
+export class StackedBarGraph extends React.Component<State, Data> {
+
     /**
      * @constructor
      */
     constructor(props) {
         super(props);
+        let { data } = props;
+        let scales = this.calculateScales(props, data);
+        let groups = this.dataToGroups(data, props.xValues);
+        let paths = this.dataToPaths(data, scales, props);
+
+        const defaultFn = (x) => undefined;
+        this.state = merge({ groups, paths }, scales);
     }
 
     /**
@@ -22,16 +40,32 @@ export class StackedBarGraph extends React.Component<any, any> {
      *      virtual DOM for text labels
      */
     renderLabel() {
-        let { xFunc, yFunc, xScale, yScale, padding, lFunc } = this.calculate();
-        return this.props.data.map((d, k) => {
+        let { yScale, xScale, padding } = this.state;
+        let { data, xValues, yValues, labelFunction } = this.props;
+        return data.map((d, k) => {
             return (
                 <text key={"b" + k}
-                    x={xScale(xFunc(d)) + padding}
-                    y={yScale(yFunc(d)) - 2}>
-                    {lFunc(d)}
+                    x={xScale(xValues(d)) + padding}
+                    y={yScale(yValues(d)) - 2}>
+                    {labelFunction(d)}
                     </text>
             )
         })
+    }
+
+    componentWillReceiveProps(nextProps) {
+        let { data } = nextProps;
+
+        let scales = this.calculateScales(nextProps, data);
+        let groups = this.dataToGroups(data, nextProps.xValues);
+        let paths = this.dataToPaths(data, scales, nextProps);
+        const defaultFn = (x) => undefined;
+
+        this.setState(merge({ groups, paths }, scales));
+    }
+
+    dataToGroups(data, xValues) {
+        return _.groupBy(data, xValues);
     }
 
     /**
@@ -40,53 +74,43 @@ export class StackedBarGraph extends React.Component<any, any> {
      * @returns
      *      virtual DOM for svg path
      */
-    renderLine() {
-        let { xFunc, yFunc, xScale, yScale, padding, gFunc } = this.calculate();
-        let path = "";
-        this.xVals = {};
-        for (let i = 0; i < this.props.data.length; i++) {
-            if (i == 0) {
-                path += "M " + (xScale(xFunc(this.props.data[i])) + padding) + " " + yScale(0)
-                    + " V " + yScale(yFunc(this.props.data[i]))
-                    + " H " + (xScale(xFunc(this.props.data[i])) + xScale.bandwidth() + padding)
-                    + " V " + yScale(0);
-                if (this.xVals[xFunc(this.props.data[i])]) {
-                    this.xVals[xFunc(this.props.data[i])] = this.xVals[xFunc(this.props.data[i])].concat([this.props.data[i]]);
-                }
-                else {
-                    this.xVals[xFunc(this.props.data[i])] = [this.props.data[i]];
-                }
-            }
-            else {
-                path += " L " + (xScale(xFunc(this.props.data[i])) + padding) + " " + yScale(0)
-                    + " V " + yScale(yFunc(this.props.data[i]))
-                    + " H " + (xScale(xFunc(this.props.data[i])) + xScale.bandwidth() + padding)
-                    + " V " + yScale(0);
-                if (this.xVals[xFunc(this.props.data[i])]) {
-                    this.xVals[xFunc(this.props.data[i])] = this.xVals[xFunc(this.props.data[i])].concat([this.props.data[i]]);
-                }
-                else {
-                    this.xVals[xFunc(this.props.data[i])] = [this.props.data[i]];
-                }
-            }
+    dataToPaths(data, calc, props) {
+        let { xScale, yScale, padding } = calc;
+        let { xValues, yValues } = props;
+        let bandwidth = xScale.bandwidth();
+
+        function path(i): string {
+            const V = y => ` V ${y}`;
+            const H = x => `H ${x}`;
+            const L = (x, y) => `L ${x} ${y}`;
+            const M = (x, y) => ` M ${x} ${y}`;
+            return [
+                M(xScale(xValues(i)) + padding, yScale(0)),
+                V(yScale(yValues(i))),
+                H(xScale(xValues(i)) + bandwidth + padding),
+                L(xScale(xValues(i)) + bandwidth + padding, yScale(0))].join(' ');
         }
+        return data.map((g, i) => path(g)).join(' ');
+    }
+
+    renderLine(path) {
         return (
             <path key={"b"}
                 d={path}
                 fill={"white"}
                 stroke="black"
                 strokeWidth={1}
-                onClick={this.handleClick.bind(this)}>
-                </path>
+                onClick={this.handleClick.bind(this) }>
+            </path>
         )
     }
 
-    renderBackground() {
+    // renderBackground() {
 
-        return (
-            <canvas id="graph" width="150" height="150"></canvas>
-        )
-    }
+    //     return (
+    //         <canvas id="graph" width="150" height="150"></canvas>
+    //     )
+    // }
 
     /**
      * Identify data area that was clicked on
@@ -95,17 +119,19 @@ export class StackedBarGraph extends React.Component<any, any> {
      *      click event
      */
     handleClick(evt) {
-        let { xScale, padding, xFunc, yFunc, yScale } = this.calculate();
+        let { groups, xScale, padding, yScale } = this.state;
+        let { xValues, data } = this.props;
         let margin = Number(document.getElementById("body")
             .style.margin.replace(/[a-zA-Z]/g, ""));
-        let x = evt.clientX - margin + window.scrollX - xScale(xFunc(this.props.data[0])) - padding;
+        let x = evt.clientX - margin + window.scrollX - xScale(xValues(data[0])) - padding;
         let y = evt.clientY;
         let bar = Math.floor(x / xScale.bandwidth());
-        let sortedYVal = _.sortBy(this.xVals[xScale.domain()[bar]], (d) => yFunc(d));
-        console.log(evt.target.getBoundingClientRect().top);
-        console.log(evt.clientY - evt.target.getBoundingClientRect().top + 30 - margin);
-        console.log(yScale.invert(evt.clientY - evt.target.getBoundingClientRect().top + 30 - margin));
-        console.log(document.getElementsByClassName("header"));
+        console.log(groups[xScale.domain()[bar]]);
+
+        // console.log(evt.target.getBoundingClientRect().top);
+        // console.log(evt.clientY - evt.target.getBoundingClientRect().top + 30 - margin);
+        // console.log(yScale.invert(evt.clientY - evt.target.getBoundingClientRect().top + 30 - margin));
+        // console.log(document.getElementsByClassName("header"));
     }
 
     /**
@@ -115,26 +141,20 @@ export class StackedBarGraph extends React.Component<any, any> {
      * @returns
      *      x scale, y scale, x function, y function, padding
      */
-    calculate() {
-        let { height, width, data } = this.props;
-
-        let xFunc: any = new Function("entry", "return " + this.props.xFunction);
-        let yFunc: any = new Function("entry", "return " + this.props.yFunction);
-        let gFunc: any = new Function("entry", "return " + this.props.groupFunction);
-        let lFunc: any = new Function("entry", this.props.labelFunction);
-
+    calculateScales(props, data) {
+        let { height, width, xValues, yValues, colorSpecific } = props;
         let xScale = d3_scale.scaleBand()
-            .domain(this.props.data.map((d, k) => {
-                return xFunc(d).toString();
+            .domain(data.map((d, k) => {
+                return xValues(d).toString();
             }))
             .range([20, width]);
-
         let yScale = d3_scale.scaleLinear()
-            .domain([0, d3.max(data, yFunc)])
+            .domain([0, d3.max(data, yValues)])
             .range([height, 20]);
         let padding = 45;
+
         return {
-            xScale, yScale, xFunc, yFunc, padding, gFunc, lFunc
+            xValues, yValues, colorSpecific, xScale, yScale, padding
         };
     }
 
@@ -145,19 +165,17 @@ export class StackedBarGraph extends React.Component<any, any> {
      *      svg elements for the graph and labels
      */
     render() {
-        let { xScale, yScale } = this.calculate();
-        let { xFunction, yFunction } = this.props;
-
+        let { paths, xScale, yScale } = this.state;
+        let { xValues, yValues } = this.props;
         return (
             <div>
-                <svg width="5000" height="500">
-                    {this.renderLine()}
+                <svg width="5000" height="600">
+                    {this.renderLine(paths)}
                     {this.renderLabel()}
-                    {this.renderBackground()}
                     <Axis
-                        title={xFunction + " vs. " + yFunction}
-                        xLabel={xFunction}
-                        yLabel={yFunction}
+                        title={xValues.name + " vs. " + yValues.name}
+                        xLabel={xValues}
+                        yLabel={yValues}
                         xScale={xScale}
                         yScale={yScale}
                         padding={45}>

@@ -2,7 +2,8 @@
   "ambientDependencies": {
     "d3": "github:DefinitelyTyped/DefinitelyTyped/d3/d3.d.ts#fab683ca77d0286b9d51aba6375deaceb41b22f5",
     "react": "github:DefinitelyTyped/DefinitelyTyped/react/react.d.ts#fab683ca77d0286b9d51aba6375deaceb41b22f5",
-    "react-dom": "github:DefinitelyTyped/DefinitelyTyped/react/react-dom.d.ts#fab683ca77d0286b9d51aba6375deaceb41b22f5"
+    "react-dom": "github:DefinitelyTyped/DefinitelyTyped/react/react-dom.d.ts#fab683ca77d0286b9d51aba6375deaceb41b22f5",
+    "rx": "npm:rx/ts/rx.all.d.ts"
   },
   "dependencies": {
     "d3-scale": "github:roguishmountain/typing/scales/index.d.ts#01dd10e80d7f86c2fa9402c114509ca504675726",

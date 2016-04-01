@@ -3,41 +3,19 @@ import * as ReactDOM from 'react-dom';
 import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
-import * as _ from 'lodash';
 import { Axis } from './Axis';
-import { filter, reject, reduce, sampleSize, split } from 'lodash';
+import { State } from './State';
+import { merge, reject, reduce,
+         sortBy, split } from 'lodash';
 
-interface State {
-    data?: any;
-    paths?: any;
+interface Data {
+    paths?: string[];
     xScale?: any;
     yScale?: any;
-    sample?: number;
-    scaleType?: any;
     padding?: number;
-    colorBy?: any;
-    xValues?: any;
-    yValues?: any;
-    labelFunction?: Function;
-    colorSpecific?: Function;
-    filterreject?: any;
 }
 
-interface Props {
-    height: number;
-    width: number;
-    colorBy: any;
-    data: any[];
-    xValues: any;
-    yValues: any;
-    labelFunction: Function;
-    colorSpecific: Function;
-    filterreject: any;
-    sample: number;
-    scaleType: any;
-}
-
-export class LinePlot extends React.Component<Props, State> {
+export class LinePlot extends React.Component<State, Data> {
 
     /**
      * Sets up the props
@@ -46,50 +24,20 @@ export class LinePlot extends React.Component<Props, State> {
      */
     constructor(props) {
         super(props);
-        let data = this.filterRejectData(this.props.data, this.props.filterreject);
-        data = this.sampleData(data, this.props.sample);
-        let s = this.calculate(props, data);
-        let paths = this.createLine(data, s);
-        let { sample, scaleType, colorBy, xValues,
-              yValues, labelFunction, colorSpecific, filterreject } = this.props;
+        let { colorBy, data, filterreject, sample } = props;
 
-        this.state = Object.assign(s, { paths, data, sample, scaleType, colorBy,
-                     xValues, yValues, labelFunction, colorSpecific, filterreject });
-    }
+        let scales = this.calculate(props, data);
+        let paths = this.createLine(data, scales);
 
-    sampleData(data, sSize) {
-        if(sSize > 0 && sSize) {
-            return sampleSize(data, sSize);
-        }
-        else {
-            return data;
-        }
-    }
-
-    filterRejectData(data, filterReject) {
-        if (filterReject) {
-            return reduce(split(filterReject, /\n/), (output, cur) => {
-                let func = new Function("data", cur);
-                return func(output);
-            }, data);
-        }
-        else {
-            return data;
-        }
+        const defaultFn = (x) => undefined;
+        this.state = merge({ paths }, scales);
     }
 
     componentWillReceiveProps(nextProps) {
-        let data = this.filterRejectData(nextProps.data, nextProps.filterreject);
-        data = this.sampleData(data, nextProps.sample);
-        let s = this.calculate(nextProps, data);
-        let paths = this.createLine(data, s);
-
-        let { sample, scaleType, colorBy, xValues,
-              yValues, labelFunction, colorSpecific, filterreject } = nextProps;
-
-        this.setState(Object.assign(s, { paths, data,
-                      sample, scaleType, colorBy, xValues,
-                      yValues, labelFunction, colorSpecific, filterreject }));
+        let { data } = nextProps;
+        let scales = this.calculate(nextProps, data);
+        let paths = this.createLine(data, scales);
+        this.setState(merge({ paths }, scales));
     }
 
     /**
@@ -105,7 +53,7 @@ export class LinePlot extends React.Component<Props, State> {
             .y(i => yScale(yValues(i)));
 
         // data needs to be sorted to draw the path for the line
-        let path: any = graph(_.sortBy(data, xValues));
+        let path: any = graph(sortBy(data, xValues));
 
         return path;
     }
@@ -128,8 +76,8 @@ export class LinePlot extends React.Component<Props, State> {
      *      the scatterplot of the data
      */
     renderPoints() {
-        let { xValues, yValues, xScale, yScale, padding, colorBy,
-              colorSpecific, data, scaleType } = this.state;
+        let { xScale, yScale, padding } = this.state;
+        let { scaleType, data, colorBy, colorSpecific, xValues, yValues } = this.props;
         let colorScale = undefined;
 
         // defaults to ordinal
@@ -171,7 +119,8 @@ export class LinePlot extends React.Component<Props, State> {
      *      labels for data points
      */
     renderLabels() {
-        let { xValues, yValues, xScale, yScale, padding, data, labelFunction } = this.state;
+        let { xScale, yScale, padding } = this.state;
+        let { data, xValues, yValues, labelFunction } = this.props;
         return data.map((d, k) => {
             return (
                 <text key={"b" + k}
@@ -191,7 +140,7 @@ export class LinePlot extends React.Component<Props, State> {
      *      click event
      */
     handleClick(evt) {
-        console.log(this.state.data[evt.target.innerHTML]);
+        console.log(this.props.data[evt.target.innerHTML]);
     }
 
     /**
@@ -246,7 +195,8 @@ export class LinePlot extends React.Component<Props, State> {
      */
     render() {
 
-        let { xScale, yScale, padding, xValues, yValues } = this.state;
+        let { xScale, yScale, padding } = this.state;
+        let { xValues, yValues } = this.props;
 
         return (
             <div>
@@ -255,7 +205,7 @@ export class LinePlot extends React.Component<Props, State> {
                     {this.renderPoints()}
                     {this.renderLabels()}
                     <Axis
-                        title={xValues + " vs. " + yValues}
+                        title={xValues.name + " vs. " + yValues.name}
                         xLabel={xValues}
                         yLabel={yValues}
                         xScale={xScale}
