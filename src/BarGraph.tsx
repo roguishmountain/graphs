@@ -28,7 +28,6 @@ export class BarGraph extends React.Component<State, Data> {
         let groups = this.dataToGroups(data, colorBy);
         let paths = this.groupsToPaths(groups, scales, props);
 
-        const defaultFn = (x) => undefined;
         this.state = merge({ groups, paths }, scales);
     }
 
@@ -38,7 +37,6 @@ export class BarGraph extends React.Component<State, Data> {
         let scales = this.calculateScales(nextProps, data);
         let groups = this.dataToGroups(data, nextProps.colorBy);
         let paths = this.groupsToPaths(groups, scales, nextProps);
-        const defaultFn = (x) => undefined;
 
         this.setState(merge({ groups, paths }, scales));
     }

@@ -4,6 +4,7 @@ import { AreaGraph } from './areagraph';
 import { BarGraph } from './BarGraph';
 import { StackedBarGraph } from './StackedBarGraph';
 import { LinePlot } from './LinePlot';
+import { ClusterBarGraph } from './ClusterBarGraph';
 import { State } from './State';
 import { merge, reduce, sampleSize, split } from 'lodash';
 import { functionChanged, dataChanged } from './Actions';
@@ -93,7 +94,7 @@ export class AppUI extends React.Component<State, Data> {
         if (this.state.valid) {
             let s = { height: 500, width: 1000 };
             return (
-                <StackedBarGraph
+                <ClusterBarGraph
                     {...Object.assign(s, this.props, this.state.scaleType)}
                     />
             )

@@ -28,8 +28,6 @@ export class LinePlot extends React.Component<State, Data> {
 
         let scales = this.calculate(props, data);
         let paths = this.createLine(data, scales);
-
-        const defaultFn = (x) => undefined;
         this.state = merge({ paths }, scales);
     }
 
