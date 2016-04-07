@@ -7,6 +7,7 @@ import { InitialState, State } from './State';
 import { AppUI } from './AppUI';
 
 const content = document.getElementById('content');
+const canvas = document.getElementById('canvas');
 
 async function view(state) {
     render(createElement(AppUI, state), content);
