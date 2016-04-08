@@ -25,21 +25,19 @@ export class BarGraph extends React.Component<State, Data> {
 
         let scales = this.calculateScales(props, data);
         let groups = this.dataToGroups(data, colorBy);
-        let paths = this.groupsToPaths(groups, scales, props);
         let canvasPaths = this.canvasGroupsToPaths(groups, scales, props);
 
-        this.state = merge({ groups, paths, canvasPaths }, scales);
+        this.state = merge({ groups, canvasPaths }, scales);
     }
 
     componentWillReceiveProps(nextProps) {
         let { colorBy, data } = nextProps;
 
         let scales = this.calculateScales(nextProps, data);
-        let groups = this.dataToGroups(data, nextProps.colorBy);
-        let paths = this.groupsToPaths(groups, scales, nextProps);
+        let groups = this.dataToGroups(data, colorBy);
         let canvasPaths = this.canvasGroupsToPaths(groups, scales, nextProps);
 
-        this.setState(merge({ groups, paths, canvasPaths }, scales));
+        this.setState(merge({ groups, canvasPaths }, scales));
     }
 
     /**
@@ -66,25 +64,6 @@ export class BarGraph extends React.Component<State, Data> {
         };
     }
 
-    groupsToPaths(groups: any[][], calc, props) {
-        let { xScale, yScale, padding } = calc;
-        let { xValues, yValues } = props;
-        let bandwidth = xScale.bandwidth();
-
-        function path(i): string {
-            const V = y => ` V ${y}`;
-            const H = x => `H ${x}`;
-            const L = (x, y) => `L ${x} ${y}`;
-            const M = (x, y) => ` M ${x} ${y}`;
-            return [
-                M(xScale(xValues(i)) + padding, yScale(0)),
-                V(yScale(yValues(i))),
-                H(xScale(xValues(i)) + bandwidth + padding),
-                L(xScale(xValues(i)) + bandwidth + padding, yScale(0))].join(' ');
-        }
-        return groups.map((g, i) => g.map(path).join(' '));
-    }
-
     canvasGroupsToPaths(groups: any[][], calc, props) {
         let { xScale, yScale, padding } = calc;
         let { xValues, yValues } = props;
@@ -101,12 +80,12 @@ export class BarGraph extends React.Component<State, Data> {
                 H(xScale(xValues(i)) + bandwidth + padding),
                 L(xScale(xValues(i)) + bandwidth + padding, yScale(0))].join(' ');
         }
-        let result: any = groups.map((g, i) => g.map(path));
+        let result: any = groups.map(path);
         return flattenDeep(result);
     }
 
     dataToGroups(data: any[], colorBy: Function) {
-        return reduce(data,
+        let result = reduce(data,
             (output: {}[][], cur) => {
                 // empty case
                 if (isEmpty(output)) return [[cur]];
@@ -122,22 +101,7 @@ export class BarGraph extends React.Component<State, Data> {
                 // append after pending
                 return concat(dropRight(output), [pending.concat(cur)]);
             }, []);
-    }
-
-    /**
-     * Identify data area that was clicked on
-     *
-     * @parameter
-     *      click event
-     */
-    handleClick(evt) {
-        let id = evt.target.innerHTML;
-        let arrPath = this.state.paths[id].replace(/\s*[A-Z]/g, "")
-            .trim().split(/\s/);
-        let margin = this.margin();
-        let bar = Math.floor((evt.clientX - arrPath[0] - margin
-            + window.scrollX) / (this.state.xScale.bandwidth()));
-        console.log(this.state.groups[id][bar]);
+         return flattenDeep(result);
     }
 
     margin() {
@@ -164,26 +128,18 @@ export class BarGraph extends React.Component<State, Data> {
         })
     }
 
-    renderPath() {
-        let { groups, paths } = this.state;
-        let colorScale = d3_scale.scaleCategory10()
-            .domain(groups.map((g) => {
-                return this.props.colorBy((g[0]));
-            }));
-
-        return paths.map((d, i) => {
-            let point = groups[i][0];
-            return (
-                <path key={"b" + i}
-                    d={d}
-                    fill={"none"}
-                    stroke="black"
-                    strokeWidth={1}
-                    onClick={this.handleClick.bind(this)}>
-                    {i}
-                </path>
-            )
-        })
+        /**
+     * Identify data area that was clicked on
+     *
+     * @parameter
+     *      click event
+     */
+    handleClick(evt) {
+        let { canvasPaths, xScale, groups } = this.state;
+        let sp = Number(canvasPaths[0].replace(/\s*[A-Z]/g, "")
+            .trim().split(/\s/)[0]);
+        let x = evt.clientX - this.margin() + window.scrollX - sp;
+        console.log(groups[Math.floor(x / xScale.bandwidth())]);
     }
 
     /**
@@ -196,14 +152,14 @@ export class BarGraph extends React.Component<State, Data> {
         let { xScale, yScale, padding, groups, canvasPaths } = this.state;
         let { xValues, yValues, width, height, colorBy, colorSpecific } = this.props;
         return (
-            <div style={{ zIndex: -100, marginBottom: 45 }}>
-                <svg width="5000" height="550" style={{ position: "fixed", left: this.margin() }}>
-                    {this.renderPath()}
+            <div style={{ marginBottom: 45, position: "relative",
+            height: height }} onClick={this.handleClick.bind(this)}>
+                <svg width="5000" height="550" style={{ position: "absolute" }}>
                     {this.renderLabel()}
                     <Axis
-                        title={this.props.xValues.name + " vs. " + this.props.yValues.name}
-                        xLabel={this.props.xValues}
-                        yLabel={this.props.yValues}
+                        title={xValues.name + " vs. " + yValues.name}
+                        xLabel={xValues}
+                        yLabel={yValues}
                         xScale={xScale}
                         yScale={yScale}
                         padding={padding}>

@@ -6,7 +6,7 @@ interface Data {
     height: number;
     colorBy: any;
     colorSpecific: Function;
-    paths: string[];
+    paths: any[];
     dataOrder: {}[];
 }
 
@@ -41,12 +41,18 @@ export class CanvasDraw extends Component<Data, {}> {
         });
     }
 
+    handleClick(evt) {
+        console.log("clicked");
+    }
+
     render() {
         let ref = (c) => this.canvas = c;
         let width = this.props.width;
         let height = this.props.height;
+        let style = {position: "absolute"};
+        let click = {onClick: evt=>this.handleClick(evt)}
 
         return createElement
-            ('canvas', { ref, width, height });
+            ('canvas', { ref, width, height, style, click });
     }
 }

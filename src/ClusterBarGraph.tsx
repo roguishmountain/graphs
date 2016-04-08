@@ -12,7 +12,6 @@ import { concat, dropRight, flattenDeep, groupBy, isEmpty, isEqual,
 interface Data {
     padding?: number;
     groups?: any[][];
-    paths?: string;
     xScale?: any;
     yScale?: any;
     sortedData?: any[];
@@ -22,21 +21,20 @@ interface Data {
 export class ClusterBarGraph extends React.Component<State, Data> {
     constructor(props) {
         super(props);
-        let { data } = props;
-        let sortedData = sortBy(data, props.xValues);
+        let { data, xValues } = props;
+        let sortedData = sortBy(data, xValues);
         let scales = this.calculateScales(props, sortedData);
-        let groups: any[][] = this.dataToGroups(sortedData, props.xValues);
+        let groups: any[][] = this.dataToGroups(sortedData, xValues);
         let canvasPaths = this.canvasGroupsToPaths(groups, scales, props);
 
         this.state = merge({ groups, sortedData, canvasPaths }, scales);
     }
 
     componentWillReceiveProps(nextProps) {
-        let { data } = nextProps;
-
-        let sortedData = sortBy(data, nextProps.xValues);
+        let { data, xValues } = nextProps;
+        let sortedData = sortBy(data, xValues);
         let scales = this.calculateScales(nextProps, sortedData);
-        let groups: any[][] = this.dataToGroups(sortedData, nextProps.xValues);
+        let groups: any[][] = this.dataToGroups(sortedData, xValues);
         let canvasPaths = this.canvasGroupsToPaths(groups, scales, nextProps);
 
         this.setState(merge({ groups, sortedData, canvasPaths }, scales));
@@ -75,31 +73,6 @@ export class ClusterBarGraph extends React.Component<State, Data> {
             }, []);
     }
 
-    groupsToPaths(groups: any[][], calc, props) {
-        let { xScale, yScale, padding } = calc;
-        let { xValues, yValues } = props;
-        let bandwidth = xScale.bandwidth();
-
-        function path(i, length, index): string {
-            const V = y => ` V ${y}`;
-            const H = x => `H ${x}`;
-            const L = (x, y) => `L ${x} ${y}`;
-            const M = (x, y) => ` M ${x} ${y}`;
-            let result = [
-                M(xScale(xValues(i)) + (bandwidth / length * index) + padding,
-                    yScale(0)),
-                V(yScale(yValues(i))),
-                H(xScale(xValues(i)) + (bandwidth / length * (index + 1)) + padding),
-                L(xScale(xValues(i)) + (bandwidth / length * (index + 1)) + padding,
-                    yScale(0))].join(' ');
-
-            return result;
-        }
-        return groups.map((g, i) => g.map((d, k) => {
-            return path(d, g.length, k);
-        }).join(' '));
-    }
-
     canvasGroupsToPaths(groups: any[][], calc, props) {
         let { xScale, yScale, padding } = calc;
         let { xValues, yValues } = props;
@@ -123,35 +96,7 @@ export class ClusterBarGraph extends React.Component<State, Data> {
         let result: any =  groups.map((g, i) => g.map((d, k) => {
             return path(d, g.length, k);
         }));
-        return flattenDeep(result);
-    }
-
-    // renderLine(path) {
-    //     let { groups, sortedData, xScale } = this.state;
-    //     let { colorBy, colorSpecific, xValues } = this.props;
-
-    //     return path.map((d, i) => {
-    //         return (
-    //             <path key={"b" + i}
-    //                 d={d}
-    //                 fill={"none"}
-    //                 stroke="black"
-    //                 strokeWidth={1}
-    //                 onClick={this.handleClick.bind(this)}>
-    //                 {i}
-    //             </path>
-    //         )
-    //     })
-    // }
-
-    handleClick(evt) {
-        let { groups, xScale, paths } = this.state;
-        let id = evt.target.innerHTML;
-        let points = paths[id].replace(/\s*[A-Z]/g, "")
-            .trim().split(/\s/);
-        let x = evt.clientX - this.margin() + window.scrollX - Number(points[0]);
-        let bar = Math.floor(x / xScale.bandwidth() / groups[id].length);
-        console.log(groups[id][bar]);
+        return result;
     }
 
     margin() {
@@ -177,29 +122,51 @@ export class ClusterBarGraph extends React.Component<State, Data> {
         };
     }
 
+    handleClick(evt) {
+        let { canvasPaths, xScale, groups } = this.state;
+        let sp = canvasPaths[0][0].replace(/\s*[A-Z]/g, "")
+            .trim().split(/\s/)[0];
+        let x = evt.clientX - this.margin() + window.scrollX;
+        let barPadding = xScale.padding() * xScale.bandwidth();
+        let groupingClick = Math.floor((x - sp) /
+            (barPadding + xScale.bandwidth()));
+        let start = canvasPaths[groupingClick][0];
+        start = start.replace(/\s*[A-Z]/g, "")
+            .trim().split(/\s/)[0];
+        let end = canvasPaths[groupingClick][canvasPaths[groupingClick].length - 1];
+        end = end.replace(/\s*[A-Z]/g, "")
+            .trim().split(/\s/)
+        end = end[end.length - 2]
+        if (x >= start && x <= end) {
+            let bar = Math.floor((x - start) / (xScale.bandwidth() / groups[groupingClick].length));
+            console.log(groups[groupingClick][bar]);
+        }
+    }
+
     render() {
-        let { paths, xScale, yScale, groups, padding, canvasPaths } = this.state;
+        let { xScale, yScale, groups, padding, canvasPaths } = this.state;
         let { xValues, yValues, width, height, colorBy, colorSpecific } = this.props;
-        const styleOuter = { zIndex: -100 };
         return (
-            <div style={{ zIndex: -100, marginBottom: 45 }} >
-                <svg width="5000" height="550" style={{ position: "fixed", left: this.margin() }}>
-                    {this.renderLabel() }
+            <div style={{ marginBottom: 45, position: "relative",
+            height: height, width: width}} onClick={this.handleClick.bind(this)}>
+            <svg width={width} height={height+50}
+                 style={{ position: "absolute" }}>
+                    {this.renderLabel()}
                     <Axis
                         title={xValues.name + " vs. " + yValues.name}
                         xLabel={xValues}
                         yLabel={yValues}
                         xScale={xScale}
                         yScale={yScale}
-                        padding={45}>
+                        padding={padding}>
                     </Axis>
-                </svg>
-                <CanvasDraw width={width + 100}
+                   </svg>
+                <CanvasDraw width={width}
                     height={height}
-                    paths={canvasPaths}
+                    paths={flattenDeep(canvasPaths)}
                     colorBy={colorBy}
                     colorSpecific={colorSpecific}
-                    dataOrder={flattenDeep(groups) }>
+                    dataOrder={flattenDeep(groups)}>
                 </CanvasDraw>
             </div>
         )

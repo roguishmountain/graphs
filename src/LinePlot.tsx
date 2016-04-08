@@ -89,25 +89,28 @@ export class LinePlot extends React.Component<State, Data> {
                     return colorBy(d);
                 }));
         }
+        // ctx.arc(75,75,50,0,Math.PI*2,true);
+        // arc(x, y, radius, startAngle, endAngle, anticlockwise)
+        // return data.map((d, k) => {
+        //     let fillColor = colorSpecific(d) || colorScale(colorBy(d));
 
-        return data.map((d, k) => {
-            let fillColor = colorSpecific(d) || colorScale(colorBy(d));
+        //     return (<g key={"g" + k}>
+        //         <title>{JSON.stringify(d)}</title>
+        //         <circle
+        //             key={"c" + k}
+        //             cx={xScale(xValues(d)) + padding}
+        //             cy={yScale(yValues(d))}
+        //             r={5}
+        //             fill={fillColor}
+        //             onClick={this.handleClick.bind(this)}
+        //             onMouseEnter={this.handleMouseEnter.bind(this)}
+        //             onMouseLeave={this.handleMouseLeave.bind(this, fillColor)}>
+        //             {k}
+        //         </circle>
+        //     </g>);
+        // });
 
-            return (<g key={"g" + k}>
-                <title>{JSON.stringify(d)}</title>
-                <circle
-                    key={"c" + k}
-                    cx={xScale(xValues(d)) + padding}
-                    cy={yScale(yValues(d))}
-                    r={5}
-                    fill={fillColor}
-                    onClick={this.handleClick.bind(this)}
-                    onMouseEnter={this.handleMouseEnter.bind(this)}
-                    onMouseLeave={this.handleMouseLeave.bind(this, fillColor)}>
-                    {k}
-                </circle>
-            </g>);
-        });
+
     }
 
     /**

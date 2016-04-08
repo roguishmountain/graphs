@@ -6,7 +6,7 @@ import { StackedBarGraph } from './StackedBarGraph';
 import { LinePlot } from './LinePlot';
 import { ClusterBarGraph } from './ClusterBarGraph';
 import { State } from './State';
-import { merge, reduce, sampleSize, split } from 'lodash';
+import { reduce, sampleSize, split, take } from 'lodash';
 import { functionChanged, dataChanged } from './Actions';
 
 interface Data {
@@ -32,7 +32,6 @@ class Predicate extends React.Component<any, any> {
 
     render() {
         let { bind, name } = this.props;
-
         return (
             <g>
                 <textarea
@@ -66,6 +65,7 @@ export class AppUI extends React.Component<State, Data> {
             let parsedVal = JSON.parse(this[name].value);
             let { sample, filterreject } = this.props;
             this.setState({ valid: true });
+
             parsedVal = this.filterRejectData("filterreject", filterreject,
                 this.sampleData("sample", sample, parsedVal));
             functionChanged("data", parsedVal);
@@ -92,20 +92,18 @@ export class AppUI extends React.Component<State, Data> {
      */
     renderGraph() {
         if (this.state.valid) {
-            let s = { height: 500, width: 1000 };
+            let s = { height: 500, width: 5000 };
             return (
-                <ClusterBarGraph
-                    {...Object.assign(s, this.props, this.state.scaleType)}
+                <LinePlot
+                    {...Object.assign({}, this.props, s, this.state.scaleType)}
                     />
             )
         }
-        else {
-            return (
-                <h4>
-                    no data or incorrectly formatted data!
-                </h4>
-            )
-        }
+        return (
+            <h4>
+                no data or incorrectly formatted data!
+            </h4>
+        )
     }
 
     /**
@@ -166,17 +164,17 @@ export class AppUI extends React.Component<State, Data> {
      */
     render() {
         return (
-            <div>
+            <g>
             <textarea
                 rows={10} cols={75}
                 ref={r => this["data"] = r}>
                 </textarea>
                 <button onClick={this.handleSubmit.bind(this, "data")}>
                     Parse
-                    </button>
+                </button>
                 {this.renderGraph()}
                 {this.renderUI()}
-                </div>
+            </g>
         )
     }
 }
