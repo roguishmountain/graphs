@@ -92,9 +92,9 @@ export class AppUI extends React.Component<State, Data> {
      */
     renderGraph() {
         if (this.state.valid) {
-            let s = { height: 500, width: 5000 };
+            let s = { height: 500, width: 5000, scaleType: this.state.scaleType};
             return (
-                <LinePlot
+                <ClusterBarGraph
                     {...Object.assign({}, this.props, s, this.state.scaleType)}
                     />
             )
@@ -106,12 +106,6 @@ export class AppUI extends React.Component<State, Data> {
         )
     }
 
-    /**
-     * DOM of the UI to set values
-     *
-     * @returns
-     *      virtual DOM for UI
-     */
     renderUI() {
         return (
             <g>

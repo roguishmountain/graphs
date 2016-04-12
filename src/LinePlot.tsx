@@ -9,73 +9,31 @@ import { merge, reject, reduce,
          sortBy, split } from 'lodash';
 
 interface Data {
-    paths?: string[];
     xScale?: any;
     yScale?: any;
     padding?: number;
 }
 
-export class LinePlot extends React.Component<State, Data> {
+class DrawGraph extends React.Component<any, any> {
+    canvas: any;
 
-    /**
-     * Sets up the props
-     *
-     * @constructor
-     */
-    constructor(props) {
-        super(props);
-        let { colorBy, data, filterreject, sample } = props;
-
-        let scales = this.calculate(props, data);
-        let paths = this.createLine(data, scales);
-        this.state = merge({ paths }, scales);
+    componentDidMount() {
+        this.drawLine(this.canvas, this.props);
+        this.drawCircles(this.canvas, this.props);
+        this.drawLabels(this.canvas, this.props);
     }
 
     componentWillReceiveProps(nextProps) {
-        let { data } = nextProps;
-        let scales = this.calculate(nextProps, data);
-        let paths = this.createLine(data, scales);
-        this.setState(merge({ paths }, scales));
+        let ctx = this.canvas.getContext("2d");
+        ctx.clearRect(0, 0, this.props.width, this.props.height);
+        this.drawLine(this.canvas, nextProps);
+        this.drawCircles(this.canvas, nextProps);
+        this.drawLabels(this.canvas, nextProps);
     }
 
-    /**
-     * Creates a path based on the data
-     *
-     * @returns
-     *      the line of the plotted data
-     */
-    createLine(data, calc) {
-        let { xValues, yValues, xScale, yScale, padding } = calc;
-        let graph = d3_shape.line()
-            .x(i => xScale(xValues(i)) + padding)
-            .y(i => yScale(yValues(i)));
-
-        // data needs to be sorted to draw the path for the line
-        let path: any = graph(sortBy(data, xValues));
-
-        return path;
-    }
-
-    renderLine(path) {
-        return (
-            <path
-                d={path}
-                stroke="black"
-                strokeWidth="1"
-                fill={"none"}>
-            </path>
-        )
-    }
-
-    /**
-     * Creates a scatterplot based on the data
-     *
-     * @returns
-     *      the scatterplot of the data
-     */
-    renderPoints() {
-        let { xScale, yScale, padding } = this.state;
-        let { scaleType, data, colorBy, colorSpecific, xValues, yValues } = this.props;
+    drawCircles(canvas, props){
+        let { data, xScale, yScale, xValues, yValues, padding,
+            colorSpecific, colorBy, scaleType } = props;
         let colorScale = undefined;
 
         // defaults to ordinal
@@ -89,132 +47,120 @@ export class LinePlot extends React.Component<State, Data> {
                     return colorBy(d);
                 }));
         }
-        // ctx.arc(75,75,50,0,Math.PI*2,true);
-        // arc(x, y, radius, startAngle, endAngle, anticlockwise)
-        // return data.map((d, k) => {
-        //     let fillColor = colorSpecific(d) || colorScale(colorBy(d));
 
-        //     return (<g key={"g" + k}>
-        //         <title>{JSON.stringify(d)}</title>
-        //         <circle
-        //             key={"c" + k}
-        //             cx={xScale(xValues(d)) + padding}
-        //             cy={yScale(yValues(d))}
-        //             r={5}
-        //             fill={fillColor}
-        //             onClick={this.handleClick.bind(this)}
-        //             onMouseEnter={this.handleMouseEnter.bind(this)}
-        //             onMouseLeave={this.handleMouseLeave.bind(this, fillColor)}>
-        //             {k}
-        //         </circle>
-        //     </g>);
-        // });
+        if (!canvas.getContext) return;
 
+        let ctx = canvas.getContext("2d");
 
+        data.forEach((element) => {
+            let fillColor = colorSpecific(element) || colorScale(colorBy(element));
+            ctx.beginPath();
+            ctx.arc(xScale(xValues(element)) + padding,
+                    yScale(yValues(element)),
+                    5, 0, 2 * Math.PI);
+            ctx.fillStyle = fillColor;
+            ctx.fill();
+        });
     }
 
-    /**
-     * Create labels based on the label function
-     *
-     * @returns
-     *      labels for data points
-     */
-    renderLabels() {
-        let { xScale, yScale, padding } = this.state;
-        let { data, xValues, yValues, labelFunction } = this.props;
-        return data.map((d, k) => {
-            return (
-                <text key={"b" + k}
-                    fill={"red"}
-                    x={xScale(xValues(d)) + padding}
-                    y={yScale(yValues(d)) - 2}>
-                    {labelFunction(d)}
-                </text>
-            )
-        })
+    drawLine(canvas, props) {
+        let { data, xValues, yValues, xScale, yScale, padding } = props;
+        let ctx = canvas.getContext("2d");
+        ctx.lineWidth = 1;
+
+        let graph = d3_shape.line()
+            .x(i => xScale(xValues(i)) + padding)
+            .y(i => yScale(yValues(i)));
+
+        // data needs to be sorted to draw the path for the line
+        let path: any = graph(sortBy(data, xValues));
+        let p = new Path2D(path);
+        ctx.strokeStyle = "black";
+        ctx.stroke(p);
     }
 
-    /**
-     * Prints data for element on click
-     *
-     * @parameter
-     *      click event
-     */
-    handleClick(evt) {
-        console.log(this.props.data[evt.target.innerHTML]);
+    drawLabels(canvas, props) {
+        let { data, xValues, yValues, xScale,
+            yScale, padding, labelFunction } = props;
+        let ctx = canvas.getContext("2d");
+        ctx.lineWidth = 1;
+        ctx.fillStyle = "black";
+
+        data.forEach((element) => {
+            ctx.fillText(labelFunction(element) || "",
+                        xScale(xValues(element)) + padding,
+                        yScale(yValues(element)));
+        });
     }
 
-    /**
-     * changes color of element on mouse enter
-     *
-     * @parameter
-     *      mouse enter event
-     */
-    handleMouseEnter(evt) {
-        evt.target.setAttribute("fill", "gray");
+    render() {
+        let ref = (c) => this.canvas = c;
+        let width = this.props.width;
+        let height = this.props.height;
+        let style = {position: "absolute"};
+
+        return React.createElement
+            ('canvas', { ref, width, height, style });
+    }
+}
+
+export class LinePlot extends React.Component<State, Data> {
+
+    constructor(props) {
+        super(props);
+        let { colorBy, data, filterreject, sample } = props;
+
+        let scales = this.calculate(props, data);
+        this.state = scales;
     }
 
-    /**
-     * changes color element on mouse leave
-     *
-     * @parameter
-     *      mouse leave event
-     */
-    handleMouseLeave(str, evt) {
-        evt.target.setAttribute("fill", str);
+    componentWillReceiveProps(nextProps) {
+        let { data } = nextProps;
+        let scales = this.calculate(nextProps, data);
+        this.setState(scales);
     }
 
-    /**
-     * Calculate x and y function, the x and y scales,
-     * and sets the padding
-     *
-     * @returns
-     *      xScale, yScale, xFunc, yFunc, padding, colorBy, labelFunction, colorSpecific
-     */
     calculate(props, data) {
-        let { height, width, xValues, yValues, colorSpecific } = props;
-
+        let { height, width, xValues, yValues } = props;
         let xScale = d3_scale.scaleLinear()
             .domain([d3.min(data, xValues), d3.max(data, xValues)])
             .range([20, width - 100]);
         let yScale = d3_scale.scaleLinear()
             .domain([d3.min(data, yValues), d3.max(data, yValues)])
             .range([height, 20]);
-
         let padding = 45;
 
         return {
-            xScale, yScale, xValues, yValues, padding, colorSpecific
+            xScale, yScale, padding
         };
     }
 
-    /**
-     * Renders the virtual DOM for the graph and labels
-     *
-     * @returns
-     *      svg elements for the graph and labels
-     */
     render() {
-
         let { xScale, yScale, padding } = this.state;
-        let { xValues, yValues } = this.props;
+        let { xValues, yValues, width, height, data,
+            colorBy, colorSpecific, scaleType, labelFunction } = this.props;
 
         return (
-            <div>
-                <svg width={this.props.width} height={700}>
-                    {this.renderLine(this.state.paths)}
-                    {this.renderPoints()}
-                    {this.renderLabels()}
+            <div style={{ marginBottom: 45, position: "relative",
+            height: height, width: width}}>
+                <DrawGraph width={width} height={height} data={data}
+                    xScale={xScale} yScale={yScale} xValues={xValues}
+                    yValues={yValues} padding={padding} colorBy={colorBy}
+                    colorSpecific={colorSpecific} scaleType={scaleType}
+                    labelFunction={labelFunction}>
+                </DrawGraph>
                     <Axis
                         title={xValues.name + " vs. " + yValues.name}
-                        xLabel={xValues}
-                        yLabel={yValues}
+                        xLabel={xValues.name}
+                        yLabel={yValues.name}
                         xScale={xScale}
                         yScale={yScale}
-                        padding={padding}>
-                        </Axis>
-                    </svg>
-                </div>
+                        padding={padding}
+                        width={width}
+                        height={height}
+                        tickLen={15}>
+                    </Axis>
+            </div>
         )
     }
 }

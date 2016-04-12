@@ -19,6 +19,46 @@ interface Data {
     sortedData?: any;
 }
 
+class DrawGraph extends React.Component<any, any> {
+    canvas: any;
+
+    componentDidMount() {
+        this.drawLabels(this.canvas, this.props);
+    }
+
+    componentWillReceiveProps(nextProps) {
+        let ctx = this.canvas.getContext("2d");
+        ctx.clearRect(0, 0, this.props.width, this.props.height);
+        this.drawLabels(this.canvas, nextProps);
+    }
+
+    drawLabels(canvas, props) {
+        if (!canvas.getContext) return;
+
+        let { data, xValues, yValues, xScale,
+            yScale, padding, labelFunction } = props;
+        let ctx = canvas.getContext("2d");
+        ctx.lineWidth = 1;
+        ctx.fillStyle = "black";
+
+        data.forEach((element) => {
+            ctx.fillText(labelFunction(element) || "",
+                        xScale(xValues(element)) + padding,
+                        yScale(yValues(element)));
+        });
+    }
+
+    render() {
+        let ref = (c) => this.canvas = c;
+        let width = this.props.width;
+        let height = this.props.height;
+        let style = {position: "absolute"};
+
+        return React.createElement
+            ('canvas', { ref, width, height, style });
+    }
+}
+
 export class StackedBarGraph extends React.Component<State, Data> {
 
     constructor(props) {
@@ -163,23 +203,23 @@ export class StackedBarGraph extends React.Component<State, Data> {
      *      svg elements for the graph and labels
      */
     render() {
-        let { paths, xScale, yScale, canvasPaths, groups } = this.state;
-        let { xValues, yValues, width, height, colorBy, colorSpecific } = this.props;
+        let { paths, xScale, yScale, canvasPaths, groups, padding } = this.state;
+        let { xValues, yValues, width, height, colorBy,
+            colorSpecific, data, labelFunction } = this.props;
         return (
             <div style={{ marginBottom: 45, position: "relative",
             height: height}} onClick={this.handleClick.bind(this)}>
-                <svg width="5000" height="550" style={{ position: "absolute" }}
-                 onClick={this.handleClick.bind(this)}>
-                    {this.renderLabel()}
-                    <Axis
+                <Axis
                         title={xValues.name + " vs. " + yValues.name}
-                        xLabel={xValues}
-                        yLabel={yValues}
+                        xLabel={xValues.name}
+                        yLabel={yValues.name}
                         xScale={xScale}
                         yScale={yScale}
-                        padding={45}>
-                        </Axis>
-                    </svg>
+                        padding={padding}
+                        width={width}
+                        height={height}
+                        tickLen={15}>
+                    </Axis>
                     <CanvasDraw width={width + 100}
                     height={height}
                     paths={canvasPaths}
@@ -187,6 +227,11 @@ export class StackedBarGraph extends React.Component<State, Data> {
                     colorSpecific={colorSpecific}
                     dataOrder={flattenDeep(groups)}>
                 </CanvasDraw>
+                <DrawGraph width={width} height={height} data={data}
+                    xScale={xScale} yScale={yScale} xValues={xValues}
+                    yValues={yValues} padding={padding}
+                    labelFunction={labelFunction}>
+                </DrawGraph>
                 </div>
         )
     }

@@ -29,10 +29,10 @@ export class CanvasDraw extends Component<Data, {}> {
         let ctx = canvas.getContext("2d");
         let colorScale = scaleCategory10()
             .domain(data.dataOrder.map(data.colorBy));
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1;
 
         data.paths.forEach((element, i) => {
-            var p = new Path2D(element);
+            let p = new Path2D(element);
             ctx.fillStyle = data.colorSpecific(data.dataOrder[i]) ||
                 colorScale(data.colorBy(data.dataOrder[i]));
             ctx.fill(p);

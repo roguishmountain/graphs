@@ -18,6 +18,46 @@ interface Data {
     canvasPaths?: any;
 }
 
+class DrawGraph extends React.Component<any, any> {
+    canvas: any;
+
+    componentDidMount() {
+        this.drawLabels(this.canvas, this.props);
+    }
+
+    componentWillReceiveProps(nextProps) {
+        let ctx = this.canvas.getContext("2d");
+        ctx.clearRect(0, 0, this.props.width, this.props.height);
+        this.drawLabels(this.canvas, nextProps);
+    }
+
+    drawLabels(canvas, props) {
+        if (!canvas.getContext) return;
+
+        let { data, xValues, yValues, xScale,
+            yScale, padding, labelFunction } = props;
+        let ctx = canvas.getContext("2d");
+        ctx.lineWidth = 1;
+        ctx.fillStyle = "black";
+
+        data.forEach((element) => {
+            ctx.fillText(labelFunction(element) || "",
+                        xScale(xValues(element)) + padding,
+                        yScale(yValues(element)));
+        });
+    }
+
+    render() {
+        let ref = (c) => this.canvas = c;
+        let width = this.props.width;
+        let height = this.props.height;
+        let style = {position: "absolute"};
+
+        return React.createElement
+            ('canvas', { ref, width, height, style });
+    }
+}
+
 export class ClusterBarGraph extends React.Component<State, Data> {
     constructor(props) {
         super(props);
@@ -93,7 +133,7 @@ export class ClusterBarGraph extends React.Component<State, Data> {
 
             return result;
         }
-        let result: any =  groups.map((g, i) => g.map((d, k) => {
+        let result: any = groups.map((g, i) => g.map((d, k) => {
             return path(d, g.length, k);
         }));
         return result;
@@ -117,50 +157,62 @@ export class ClusterBarGraph extends React.Component<State, Data> {
             .range([height, 20]);
         let padding = 45;
 
+        console.log("bandwidth", xScale.bandwidth());
+        console.log("bandwidth padding", xScale.paddingInner() * xScale.bandwidth() + padding);
+
         return {
-            xValues, yValues, colorSpecific, xScale, yScale, padding
+            colorSpecific, xScale, yScale, padding
         };
     }
 
     handleClick(evt) {
-        let { canvasPaths, xScale, groups } = this.state;
-        let sp = canvasPaths[0][0].replace(/\s*[A-Z]/g, "")
-            .trim().split(/\s/)[0];
+        // let { canvasPaths, xScale, groups } = this.state;
+        // let sp = Number(canvasPaths[0][0].replace(/\s*[A-Z]/g, "")
+        //     .trim().split(/\s/)[0]);
+        // let x = evt.clientX - this.margin() + window.scrollX;
+        // if (x >= sp) {
+        //     console.log(x);
+            // let grouping = Math.floor((x-sp) /
+            //     (xScale.bandwidth() + (xScale.bandwidth() * xScale.padding())));
+            // console.log(grouping);
+            // console.log(canvasPaths[grouping][0], "\n",
+            //         canvasPaths[grouping][canvasPaths[grouping].length-1]);
+            // let start = canvasPaths[grouping][0].replace(/\s*[A-Z]/g, "")
+            //     .trim().split(/\s/);
+            // let end = canvasPaths[grouping][canvasPaths[grouping].length-1]
+            //     .replace(/\s*[A-Z]/g, "").trim().split(/\s/);
+            // console.log(`${x} <= ${Number(end[end.length-2])} && ${x} >= ${Number(start[0])}`);
+            // if (x <= Number(end[end.length-2]) && x >= Number(start[0])) {
+            //     console.log("in bounds");
+            // }
+        let { canvasPaths, groups, xScale } = this.state;
+        let sp = Number(canvasPaths[0][0].replace(/\s*[A-Z]/g, "")
+            .trim().split(/\s/)[0]);
         let x = evt.clientX - this.margin() + window.scrollX;
-        let barPadding = xScale.padding() * xScale.bandwidth();
-        let groupingClick = Math.floor((x - sp) /
-            (barPadding + xScale.bandwidth()));
-        let start = canvasPaths[groupingClick][0];
-        start = start.replace(/\s*[A-Z]/g, "")
-            .trim().split(/\s/)[0];
-        let end = canvasPaths[groupingClick][canvasPaths[groupingClick].length - 1];
-        end = end.replace(/\s*[A-Z]/g, "")
-            .trim().split(/\s/)
-        end = end[end.length - 2]
-        if (x >= start && x <= end) {
-            let bar = Math.floor((x - start) / (xScale.bandwidth() / groups[groupingClick].length));
-            console.log(groups[groupingClick][bar]);
-        }
+        console.log(x);
+        // let grouping = Math.floor((x) /
+        //                     (xScale.bandwidth() + xScale.bandwidth() *
+        //                     xScale.padding()));
+        // console.log(grouping);
+        // console.log(canvasPaths[grouping]);
+        // // console.log(groups[Math.floor(x / xScale.bandwidth())]);
+        // let start = canvasPaths[grouping][0].replace(/\s*[A-Z]/g, "")
+        //     .trim().split(/\s/);
+        // let end = canvasPaths[grouping][canvasPaths[grouping].length - 1]
+        //     .replace(/\s*[A-Z]/g, "").trim().split(/\s/);
+        // console.log(Number(start[0]), "\n", Number(end[end.length - 2]));
+        // if (x <= (Number(end[end.length - 2])-sp) && x >= (Number(start[0])-sp)) {
+        //         console.log("in bounds");
+        // }
     }
 
     render() {
         let { xScale, yScale, groups, padding, canvasPaths } = this.state;
-        let { xValues, yValues, width, height, colorBy, colorSpecific } = this.props;
+        let { labelFunction, data, xValues, yValues, width,
+              height, colorBy, colorSpecific } = this.props;
         return (
             <div style={{ marginBottom: 45, position: "relative",
-            height: height, width: width}} onClick={this.handleClick.bind(this)}>
-            <svg width={width} height={height+50}
-                 style={{ position: "absolute" }}>
-                    {this.renderLabel()}
-                    <Axis
-                        title={xValues.name + " vs. " + yValues.name}
-                        xLabel={xValues}
-                        yLabel={yValues}
-                        xScale={xScale}
-                        yScale={yScale}
-                        padding={padding}>
-                    </Axis>
-                   </svg>
+            height: height, width: width}} onMouseOver={this.handleClick.bind(this)}>
                 <CanvasDraw width={width}
                     height={height}
                     paths={flattenDeep(canvasPaths)}
@@ -168,6 +220,22 @@ export class ClusterBarGraph extends React.Component<State, Data> {
                     colorSpecific={colorSpecific}
                     dataOrder={flattenDeep(groups)}>
                 </CanvasDraw>
+                <DrawGraph width={width} height={height} data={data}
+                    xScale={xScale} yScale={yScale} xValues={xValues}
+                    yValues={yValues} padding={padding}
+                    labelFunction={labelFunction}>
+                </DrawGraph>
+                    <Axis
+                        title={xValues.name + " vs. " + yValues.name}
+                        xLabel={xValues.name}
+                        yLabel={yValues.name}
+                        xScale={xScale}
+                        yScale={yScale}
+                        padding={padding}
+                        width={width}
+                        height={height}
+                        tickLen={15}>
+                    </Axis>
             </div>
         )
     }

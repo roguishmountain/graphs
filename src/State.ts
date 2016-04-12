@@ -20,8 +20,8 @@ export const InitialState: State = {
     yValues: new Function('entry', 'return entry.duration'),
     labelFunction: new Function('entry', ''),
     colorSpecific: new Function('entry', ''),
-    filterreject: undefined,
+    filterreject: "return _.filter(data, d=>d.duration > 0)",
     sample: 0,
-    scaleType: undefined,
+    scaleType: "continuous",
     data: undefined
 }

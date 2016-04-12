@@ -17,6 +17,46 @@ interface Data {
     canvasPaths?: any[];
 }
 
+class DrawGraph extends React.Component<any, any> {
+    canvas: any;
+
+    componentDidMount() {
+        this.drawLabels(this.canvas, this.props);
+    }
+
+    componentWillReceiveProps(nextProps) {
+        let ctx = this.canvas.getContext("2d");
+        ctx.clearRect(0, 0, this.props.width, this.props.height);
+        this.drawLabels(this.canvas, nextProps);
+    }
+
+    drawLabels(canvas, props) {
+        if (!canvas.getContext) return;
+
+        let { data, xValues, yValues, xScale,
+            yScale, padding, labelFunction } = props;
+        let ctx = canvas.getContext("2d");
+        ctx.lineWidth = 1;
+        ctx.fillStyle = "black";
+
+        data.forEach((element) => {
+            ctx.fillText(labelFunction(element) || "",
+                        xScale(xValues(element)) + padding,
+                        yScale(yValues(element)));
+        });
+    }
+
+    render() {
+        let ref = (c) => this.canvas = c;
+        let width = this.props.width;
+        let height = this.props.height;
+        let style = {position: "absolute"};
+
+        return React.createElement
+            ('canvas', { ref, width, height, style });
+    }
+}
+
 export class BarGraph extends React.Component<State, Data> {
 
     constructor(props) {
@@ -109,31 +149,6 @@ export class BarGraph extends React.Component<State, Data> {
             .style.margin.replace(/[a-zA-Z]/g, ""));
     }
 
-    /**
-     * Calculate the extra labels for the graph
-     *
-     * @returns
-     *      virtual DOM for text labels
-     */
-    renderLabel() {
-        let { xScale, yScale, padding } = this.state;
-        return this.props.data.map((d, k) => {
-            return (
-                <text key={"b" + k}
-                    x={xScale(this.props.xValues(d)) + padding}
-                    y={yScale(this.props.yValues(d)) - 2}>
-                    {this.props.labelFunction(d)}
-                    </text>
-            )
-        })
-    }
-
-        /**
-     * Identify data area that was clicked on
-     *
-     * @parameter
-     *      click event
-     */
     handleClick(evt) {
         let { canvasPaths, xScale, groups } = this.state;
         let sp = Number(canvasPaths[0].replace(/\s*[A-Z]/g, "")
@@ -142,36 +157,36 @@ export class BarGraph extends React.Component<State, Data> {
         console.log(groups[Math.floor(x / xScale.bandwidth())]);
     }
 
-    /**
-     * Renders the virtual DOM for the graph and labels
-     *
-     * @returns
-     *      svg elements for the graph and labels
-     */
     render() {
         let { xScale, yScale, padding, groups, canvasPaths } = this.state;
-        let { xValues, yValues, width, height, colorBy, colorSpecific } = this.props;
+        let { xValues, yValues, width, height, colorBy, colorSpecific,
+            data, labelFunction } = this.props;
         return (
             <div style={{ marginBottom: 45, position: "relative",
             height: height }} onClick={this.handleClick.bind(this)}>
-                <svg width="5000" height="550" style={{ position: "absolute" }}>
-                    {this.renderLabel()}
-                    <Axis
-                        title={xValues.name + " vs. " + yValues.name}
-                        xLabel={xValues}
-                        yLabel={yValues}
-                        xScale={xScale}
-                        yScale={yScale}
-                        padding={padding}>
-                        </Axis>
-                    </svg>
-                    <CanvasDraw width={width + 100}
+                <CanvasDraw width={width + 100}
                     height={height}
                     paths={canvasPaths}
                     colorBy={colorBy}
                     colorSpecific={colorSpecific}
-                    dataOrder={flattenDeep(groups) }>
+                    dataOrder={flattenDeep(groups)}>
                 </CanvasDraw>
+                <DrawGraph width={width} height={height} data={data}
+                    xScale={xScale} yScale={yScale} xValues={xValues}
+                    yValues={yValues} padding={padding}
+                    labelFunction={labelFunction}>
+                </DrawGraph>
+                <Axis
+                        title={xValues.name + " vs. " + yValues.name}
+                        xLabel={xValues.name}
+                        yLabel={yValues.name}
+                        xScale={xScale}
+                        yScale={yScale}
+                        padding={padding}
+                        width={width}
+                        height={height}
+                        tickLen={15}>
+                    </Axis>
                 </div>
         )
     }
