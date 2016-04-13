@@ -33,33 +33,25 @@ class Predicate extends React.Component<any, any> {
     render() {
         let { bind, name } = this.props;
         return (
-            <g>
+            <div>
                 <textarea
                     ref={r => bind[name] = r} rows={5} cols={20}>
                 </textarea>
                 <button onClick={evt => this.handleDefaultSubmit(evt)}>
                     {this.props.children}
                 </button>
-            </g>
+            </div>
         );
     }
 }
 
 export class AppUI extends React.Component<State, Data> {
-    /**
-     * @constructor
-     */
+
     constructor(props) {
         super(props);
         this.state = { valid: false };
     }
 
-    /**
-     * parse JSON and set state to objects
-     *
-     * @parameter
-     *      click event
-     */
     handleSubmit(name, evt) {
         try {
             let parsedVal = JSON.parse(this[name].value);
@@ -76,25 +68,15 @@ export class AppUI extends React.Component<State, Data> {
         }
     }
 
-    /**
-     * sets if ordinal or continuous for color grouping
-     */
     handleRadioSubmit(evt) {
         this.setState({ scaleType: evt.target.value });
     }
 
-    /**
-     * checks the state is valid and renders
-     * data if valid or no data message if not valid
-     *
-     * @returns
-     *      virtual DOM for graph or no data message
-     */
     renderGraph() {
         if (this.state.valid) {
             let s = { height: 500, width: 5000, scaleType: this.state.scaleType};
             return (
-                <ClusterBarGraph
+                <BarGraph
                     {...Object.assign({}, this.props, s, this.state.scaleType)}
                     />
             )
@@ -108,7 +90,7 @@ export class AppUI extends React.Component<State, Data> {
 
     renderUI() {
         return (
-            <g>
+            <div>
                 <Predicate name='xValues' bind={this}>Use X Value Function</Predicate>
                 <Predicate name='yValues' bind={this}>Use Y Value Function</Predicate>
                 <p></p>
@@ -125,7 +107,7 @@ export class AppUI extends React.Component<State, Data> {
                 <p></p>
                 <Predicate name='filterreject' bind={this} func={this.filterRejectData}>Use filter/reject</Predicate>
                 <Predicate name='sample' bind={this} func={this.sampleData}>Use Sample Size</Predicate>
-            </g>
+            </div>
         )
     }
 
@@ -150,15 +132,9 @@ export class AppUI extends React.Component<State, Data> {
         return newData;
     }
 
-    /**
-     * Renders the virtual DOM for the text areas
-     *
-     * @returns
-     *      svg elements for data, x value, and y value text areas
-     */
     render() {
         return (
-            <g>
+            <div>
             <textarea
                 rows={10} cols={75}
                 ref={r => this["data"] = r}>
@@ -168,7 +144,7 @@ export class AppUI extends React.Component<State, Data> {
                 </button>
                 {this.renderGraph()}
                 {this.renderUI()}
-            </g>
+            </div>
         )
     }
 }

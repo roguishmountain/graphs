@@ -5,7 +5,7 @@ import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
 import { Axis } from './Axis';
 import { State } from './State';
-import { CanvasDraw } from './Canvas';
+import { CanvasDraw } from './CanvasDraw';
 import { concat, dropRight, flattenDeep, groupBy, isEmpty, isEqual,
          last, merge, reduce, sortBy, split } from 'lodash';
 
@@ -15,7 +15,8 @@ interface Data {
     xScale?: any;
     yScale?: any;
     sortedData?: any[];
-    canvasPaths?: any;
+    rectPaths?: any[][];
+    canvasPaths?: any[];
 }
 
 class DrawGraph extends React.Component<any, any> {
@@ -65,9 +66,9 @@ export class ClusterBarGraph extends React.Component<State, Data> {
         let sortedData = sortBy(data, xValues);
         let scales = this.calculateScales(props, sortedData);
         let groups: any[][] = this.dataToGroups(sortedData, xValues);
-        let canvasPaths = this.canvasGroupsToPaths(groups, scales, props);
-
-        this.state = merge({ groups, sortedData, canvasPaths }, scales);
+        let rectPaths = this.canvasGroupsToRects(groups, scales, props);
+        let canvasPaths = this.rectsToPaths(rectPaths);
+        this.state = merge({ groups, sortedData, canvasPaths, rectPaths }, scales);
     }
 
     componentWillReceiveProps(nextProps) {
@@ -75,23 +76,9 @@ export class ClusterBarGraph extends React.Component<State, Data> {
         let sortedData = sortBy(data, xValues);
         let scales = this.calculateScales(nextProps, sortedData);
         let groups: any[][] = this.dataToGroups(sortedData, xValues);
-        let canvasPaths = this.canvasGroupsToPaths(groups, scales, nextProps);
-
-        this.setState(merge({ groups, sortedData, canvasPaths }, scales));
-    }
-
-    renderLabel() {
-        let { yScale, xScale, padding } = this.state;
-        let { data, xValues, yValues, labelFunction } = this.props;
-        return data.map((d, k) => {
-            return (
-                <text key={"b" + k}
-                    x={xScale(xValues(d)) + padding}
-                    y={yScale(yValues(d)) - 2}>
-                    {labelFunction(d)}
-                </text>
-            )
-        })
+        let rectPaths = this.canvasGroupsToRects(groups, scales, nextProps);
+        let canvasPaths = this.rectsToPaths(rectPaths);
+        this.setState(merge({ groups, sortedData, canvasPaths, rectPaths }, scales));
     }
 
     dataToGroups(data, xValues) {
@@ -113,97 +100,76 @@ export class ClusterBarGraph extends React.Component<State, Data> {
             }, []);
     }
 
-    canvasGroupsToPaths(groups: any[][], calc, props) {
+    canvasGroupsToRects(groups: any[][], calc, props) {
         let { xScale, yScale, padding } = calc;
         let { xValues, yValues } = props;
         let bandwidth = xScale.bandwidth();
 
-        function path(i, length, index): string {
+        let result: any = groups.map((g, i) => g.map((d, k) => {
+            return {"x": xScale(xValues(d)) + ((bandwidth / g.length) * k) + padding,
+                "y": yScale(0),
+                "w": (bandwidth / g.length),
+                "h": yScale(yValues(d))
+            };
+        }));
+        return result;
+    }
+
+    rectsToPaths(groups: any[][]) {
+        function path(rect): string {
             const V = y => ` V ${y}`;
             const H = x => `H ${x}`;
             const L = (x, y) => `L ${x} ${y}`;
             const M = (x, y) => ` M ${x} ${y}`;
             let result = [
-                M(xScale(xValues(i)) + (bandwidth / length * index) + padding,
-                    yScale(0)),
-                V(yScale(yValues(i))),
-                H(xScale(xValues(i)) + (bandwidth / length * (index + 1)) + padding),
-                L(xScale(xValues(i)) + (bandwidth / length * (index + 1)) + padding,
-                    yScale(0))].join(' ');
-
+                M(rect.x, rect.y),
+                V(rect.h),
+                H(rect.x + rect.w),
+                L(rect.x + rect.w, rect.y)
+            ].join(' ');
             return result;
         }
+
         let result: any = groups.map((g, i) => g.map((d, k) => {
-            return path(d, g.length, k);
+            return path(d);
         }));
-        return result;
+
+        return flattenDeep(result);
     }
 
     margin() {
-        return Number(document.getElementById("body")
-            .style.margin.replace(/[a-zA-Z]/g, ""));
+        return parseInt(document.getElementById("body").style.margin);
     }
 
     calculateScales(props, data) {
-        let { height, width, xValues, yValues, colorSpecific } = props;
+        let { height, width, xValues, yValues } = props;
+
+        let padding = 45;
         let xScale = d3_scale.scaleBand()
-            .domain(data.map((d, k) => {
-                return xValues(d).toString();
-            }))
-            .range([20, width])
-            .paddingInner(0.25);
+            .domain(data.map((d) =>  xValues(d).toString()))
+            .rangeRound([20, width])
+            .paddingInner(0.1);
         let yScale = d3_scale.scaleLinear()
             .domain([0, d3.max(data, yValues)])
             .range([height, 20]);
-        let padding = 45;
-
-        console.log("bandwidth", xScale.bandwidth());
-        console.log("bandwidth padding", xScale.paddingInner() * xScale.bandwidth() + padding);
 
         return {
-            colorSpecific, xScale, yScale, padding
+            xScale, yScale, padding
         };
     }
 
     handleClick(evt) {
-        // let { canvasPaths, xScale, groups } = this.state;
-        // let sp = Number(canvasPaths[0][0].replace(/\s*[A-Z]/g, "")
-        //     .trim().split(/\s/)[0]);
-        // let x = evt.clientX - this.margin() + window.scrollX;
-        // if (x >= sp) {
-        //     console.log(x);
-            // let grouping = Math.floor((x-sp) /
-            //     (xScale.bandwidth() + (xScale.bandwidth() * xScale.padding())));
-            // console.log(grouping);
-            // console.log(canvasPaths[grouping][0], "\n",
-            //         canvasPaths[grouping][canvasPaths[grouping].length-1]);
-            // let start = canvasPaths[grouping][0].replace(/\s*[A-Z]/g, "")
-            //     .trim().split(/\s/);
-            // let end = canvasPaths[grouping][canvasPaths[grouping].length-1]
-            //     .replace(/\s*[A-Z]/g, "").trim().split(/\s/);
-            // console.log(`${x} <= ${Number(end[end.length-2])} && ${x} >= ${Number(start[0])}`);
-            // if (x <= Number(end[end.length-2]) && x >= Number(start[0])) {
-            //     console.log("in bounds");
-            // }
-        let { canvasPaths, groups, xScale } = this.state;
-        let sp = Number(canvasPaths[0][0].replace(/\s*[A-Z]/g, "")
-            .trim().split(/\s/)[0]);
+        let {xScale, rectPaths, groups } = this.state;
         let x = evt.clientX - this.margin() + window.scrollX;
         console.log(x);
-        // let grouping = Math.floor((x) /
-        //                     (xScale.bandwidth() + xScale.bandwidth() *
-        //                     xScale.padding()));
-        // console.log(grouping);
-        // console.log(canvasPaths[grouping]);
-        // // console.log(groups[Math.floor(x / xScale.bandwidth())]);
-        // let start = canvasPaths[grouping][0].replace(/\s*[A-Z]/g, "")
-        //     .trim().split(/\s/);
-        // let end = canvasPaths[grouping][canvasPaths[grouping].length - 1]
-        //     .replace(/\s*[A-Z]/g, "").trim().split(/\s/);
-        // console.log(Number(start[0]), "\n", Number(end[end.length - 2]));
-        // if (x <= (Number(end[end.length - 2])-sp) && x >= (Number(start[0])-sp)) {
-        //         console.log("in bounds");
-        // }
+        let sp = rectPaths[0][0].x;
+        let groupingClick = (Math.floor((x - sp) / xScale.step()));
+        if (x <= xScale.bandwidth() + rectPaths[groupingClick][0].x) {
+            let cluster = groups[Math.floor(x / xScale.step())];
+            let bar = Math.floor((x - rectPaths[groupingClick][0].x) /
+                (xScale.bandwidth() / cluster.length));
+            console.log(cluster[bar], bar);
+        }
     }
 
     render() {
@@ -212,10 +178,10 @@ export class ClusterBarGraph extends React.Component<State, Data> {
               height, colorBy, colorSpecific } = this.props;
         return (
             <div style={{ marginBottom: 45, position: "relative",
-            height: height, width: width}} onMouseOver={this.handleClick.bind(this)}>
+            height: height, width: width}} onClick={this.handleClick.bind(this)}>
                 <CanvasDraw width={width}
                     height={height}
-                    paths={flattenDeep(canvasPaths)}
+                    paths={canvasPaths}
                     colorBy={colorBy}
                     colorSpecific={colorSpecific}
                     dataOrder={flattenDeep(groups)}>
@@ -225,17 +191,16 @@ export class ClusterBarGraph extends React.Component<State, Data> {
                     yValues={yValues} padding={padding}
                     labelFunction={labelFunction}>
                 </DrawGraph>
-                    <Axis
-                        title={xValues.name + " vs. " + yValues.name}
-                        xLabel={xValues.name}
-                        yLabel={yValues.name}
-                        xScale={xScale}
-                        yScale={yScale}
-                        padding={padding}
-                        width={width}
-                        height={height}
-                        tickLen={15}>
-                    </Axis>
+                <Axis title={xValues.name + " vs. " + yValues.name}
+                    xLabel={xValues.name}
+                    yLabel={yValues.name}
+                    xScale={xScale}
+                    yScale={yScale}
+                    padding={padding}
+                    width={width}
+                    height={height}
+                    tickLen={15}>
+                </Axis>
             </div>
         )
     }

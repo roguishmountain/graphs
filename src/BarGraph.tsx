@@ -3,7 +3,7 @@ import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
 import { Axis } from './Axis';
-import { CanvasDraw } from './Canvas';
+import { CanvasDraw } from './CanvasDraw';
 import { State } from './State';
 import { concat, dropRight, flattenDeep, isEmpty, isEqual,
          last, merge, reduce, split } from 'lodash';
@@ -15,6 +15,7 @@ interface Data {
     xScale?: any;
     yScale?: any;
     canvasPaths?: any[];
+    rectPaths?: any[];
 }
 
 class DrawGraph extends React.Component<any, any> {
@@ -65,9 +66,10 @@ export class BarGraph extends React.Component<State, Data> {
 
         let scales = this.calculateScales(props, data);
         let groups = this.dataToGroups(data, colorBy);
-        let canvasPaths = this.canvasGroupsToPaths(groups, scales, props);
+        let rectPaths = this.canvasGroupsToRects(groups, scales, props);
+        let canvasPaths = this.rectsToPaths(rectPaths);
 
-        this.state = merge({ groups, canvasPaths }, scales);
+        this.state = merge({ groups, canvasPaths, rectPaths }, scales);
     }
 
     componentWillReceiveProps(nextProps) {
@@ -75,18 +77,12 @@ export class BarGraph extends React.Component<State, Data> {
 
         let scales = this.calculateScales(nextProps, data);
         let groups = this.dataToGroups(data, colorBy);
-        let canvasPaths = this.canvasGroupsToPaths(groups, scales, nextProps);
+        let rectPaths = this.canvasGroupsToRects(groups, scales, nextProps);
+        let canvasPaths = this.rectsToPaths(rectPaths);
 
-        this.setState(merge({ groups, canvasPaths }, scales));
+        this.setState(merge({ groups, canvasPaths, rectPaths }, scales));
     }
 
-    /**
-     * Calculate x and y function, the x and y scales,
-     * and sets the padding
-     *
-     * @returns
-     *      xScale, yScale, xValues, yValues, padding, colorBy, colorSpecific, labelFunction
-     */
     calculateScales(props, data) {
         let { height, width, xValues, yValues, colorSpecific } = props;
         let xScale = d3_scale.scaleBand()
@@ -104,23 +100,38 @@ export class BarGraph extends React.Component<State, Data> {
         };
     }
 
-    canvasGroupsToPaths(groups: any[][], calc, props) {
+    canvasGroupsToRects(groups: any[][], calc, props) {
         let { xScale, yScale, padding } = calc;
         let { xValues, yValues } = props;
         let bandwidth = xScale.bandwidth();
 
-        function path(i): string {
+        let result: any = groups.map((g, i) => {
+            return {"x": xScale(xValues(g)) + padding,
+                "y": yScale(0),
+                "w": bandwidth,
+                "h": yScale(yValues(g))
+            };
+        });
+        return result;
+    }
+
+    rectsToPaths(groups: any[][]) {
+        function path(rect): string {
             const V = y => ` V ${y}`;
             const H = x => `H ${x}`;
             const L = (x, y) => `L ${x} ${y}`;
             const M = (x, y) => ` M ${x} ${y}`;
-            return [
-                M(xScale(xValues(i)) + padding, yScale(0)),
-                V(yScale(yValues(i))),
-                H(xScale(xValues(i)) + bandwidth + padding),
-                L(xScale(xValues(i)) + bandwidth + padding, yScale(0))].join(' ');
+            let result = [
+                M(rect.x, rect.y),
+                V(rect.h),
+                H(rect.x + rect.w),
+                L(rect.x + rect.w, rect.y)
+            ].join(' ');
+            return result;
         }
+
         let result: any = groups.map(path);
+
         return flattenDeep(result);
     }
 
@@ -145,16 +156,17 @@ export class BarGraph extends React.Component<State, Data> {
     }
 
     margin() {
-        return Number(document.getElementById("body")
-            .style.margin.replace(/[a-zA-Z]/g, ""));
+        return parseInt(document.getElementById("body").style.margin);
     }
 
     handleClick(evt) {
-        let { canvasPaths, xScale, groups } = this.state;
-        let sp = Number(canvasPaths[0].replace(/\s*[A-Z]/g, "")
-            .trim().split(/\s/)[0]);
+        let { canvasPaths, xScale, groups, rectPaths } = this.state;
+        let sp = rectPaths[0].x;
         let x = evt.clientX - this.margin() + window.scrollX - sp;
         console.log(groups[Math.floor(x / xScale.bandwidth())]);
+        return (
+            <div {class:tooltip}>hello!</div>
+        )
     }
 
     render() {
@@ -176,18 +188,17 @@ export class BarGraph extends React.Component<State, Data> {
                     yValues={yValues} padding={padding}
                     labelFunction={labelFunction}>
                 </DrawGraph>
-                <Axis
-                        title={xValues.name + " vs. " + yValues.name}
-                        xLabel={xValues.name}
-                        yLabel={yValues.name}
-                        xScale={xScale}
-                        yScale={yScale}
-                        padding={padding}
-                        width={width}
-                        height={height}
-                        tickLen={15}>
-                    </Axis>
-                </div>
+                <Axis title={xValues.name + " vs. " + yValues.name}
+                    xLabel={xValues.name}
+                    yLabel={yValues.name}
+                    xScale={xScale}
+                    yScale={yScale}
+                    padding={padding}
+                    width={width}
+                    height={height}
+                    tickLen={15}>
+                </Axis>
+            </div>
         )
     }
 }

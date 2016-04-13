@@ -22,7 +22,7 @@ export class Axis extends Component<AxisLines, any> {
 
     componentWillReceiveProps(nextProps) {
         let ctx = this.canvas.getContext("2d");
-        ctx.clearRect(0, 0, this.props.width, this.props.height+50);
+        ctx.clearRect(0, 0, this.props.width, this.props.height + 50);
         this.drawAxisLines(this.canvas, nextProps);
         this.drawXTicks(this.canvas, nextProps);
         this.drawYTicks(this.canvas, nextProps);
@@ -32,22 +32,22 @@ export class Axis extends Component<AxisLines, any> {
     drawAxisLines(canvas, props) {
         if (!canvas.getContext) return;
 
-        console.log("drawing");
         let { data, xValues, yValues, xScale,
             yScale, padding, labelFunction } = props;
         let ctx = canvas.getContext("2d");
         ctx.lineWidth = 1;
         ctx.fillStyle = "black";
 
-        ctx.beginPath();
-        ctx.moveTo(xScale.range()[0] + padding, yScale.range()[0]);
-        ctx.lineTo(xScale.range()[1] + padding, yScale.range()[0]);
-        ctx.closePath();
-        ctx.stroke();
+        this.createLine(ctx, xScale(xScale.domain()[0]) + padding,  yScale.range()[0],
+                xScale.range()[1] + padding, yScale.range()[0]);
+        this.createLine(ctx, xScale(xScale.domain()[0]) + padding,  yScale.range()[0],
+                xScale(xScale.domain()[0]) + padding, yScale.range()[1]);
+    }
 
+    createLine(ctx, x1, y1, x2, y2) {
         ctx.beginPath();
-        ctx.moveTo(xScale.range()[0] + padding, yScale.range()[0]);
-        ctx.lineTo(xScale.range()[0] + padding, yScale.range()[1]);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
         ctx.closePath();
         ctx.stroke();
     }
@@ -79,13 +79,10 @@ export class Axis extends Component<AxisLines, any> {
             }
 
             // tick
-            ctx.beginPath();
-            ctx.moveTo(x, yScale.range()[0]);
-            ctx.lineTo(x, yScale.range()[0] + tickLen);
-            ctx.closePath();
-            ctx.stroke();
+            this.createLine(ctx, x, yScale.range()[0], x,
+                           yScale.range()[0] + tickLen);
 
-            //text
+            // text
             ctx.fillText(element,
                          x, yScale.range()[0] + tickLen * 2);
         });
@@ -100,19 +97,16 @@ export class Axis extends Component<AxisLines, any> {
         ctx.fillStyle = "black";
 
         yScale.ticks().forEach((element) => {
-            let xCoord = (padding) + 20;
-            let yCoord = yScale(element);
+            // let x = (padding) + 20;
+            let x = xScale(xScale.domain()[0]) + padding;
+            let y = yScale(element);
 
             // tick
-            ctx.beginPath();
-            ctx.moveTo(xCoord, yCoord);
-            ctx.lineTo(xCoord - tickLen, yCoord);
-            ctx.closePath();
-            ctx.stroke();
+            this.createLine(ctx, x, y, x - tickLen, y);
 
-            //text
+            // text
             ctx.fillText(element,
-                         xCoord - tickLen * 2, yCoord);
+                         x - tickLen * 2, y);
         });
     }
 
@@ -120,25 +114,27 @@ export class Axis extends Component<AxisLines, any> {
         if (!canvas.getContext) return;
 
         let { xScale, xLabel, yLabel, title,
-            yScale, tickLen } = props;
+            yScale, tickLen, padding } = props;
         let ctx = canvas.getContext("2d");
         ctx.lineWidth = 1;
         ctx.font = "16px serif";
         ctx.fillStyle = "black";
 
         ctx.fillText(xLabel,
-                    (xScale.range()[1]) / 2,
-                     yScale.range()[0] + tickLen * 3);
+            (xScale.range()[1]) / 2,
+            yScale.range()[0] + tickLen * 3);
 
-        ctx.font = "16px serif";
-        // rotate label
-        ctx.fillText(yLabel,
-                     0, yScale.range()[0]/2);
+        // TODO: fix rotation location
+        ctx.save();
+        ctx.translate(padding, yScale.range()[0] / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = "center";
+        ctx.fillText(yLabel, padding, yScale.range()[0] / 2);
+        ctx.restore();
 
-        ctx.font = "16px serif";
         ctx.fillText(title,
-                    (xScale.range()[1]) / 2,
-                     yScale.range()[1]);
+            (xScale.range()[1]) / 2,
+            yScale.range()[1]);
     }
 
     render() {
@@ -148,6 +144,6 @@ export class Axis extends Component<AxisLines, any> {
         let style = {position: "absolute"};
 
         return createElement
-            ('canvas', { ref, width, height:height+50, style });
+            ('canvas', { ref, width, height: height + 50, style });
     }
 }
