@@ -1,8 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import * as d3_scale from 'd3-scale';
-import * as d3_shape from 'd3-shape';
-import * as d3 from 'd3';
+import { scaleBand, scaleLinear } from 'd3-scale';
+import { max } from 'd3';
 import { Axis } from './Axis';
 import { State } from './State';
 import { CanvasDraw } from './CanvasDraw';
@@ -42,9 +41,10 @@ class DrawGraph extends React.Component<any, any> {
         ctx.lineWidth = 1;
         ctx.fillStyle = "black";
 
+        ctx.textAlign = "center";
         data.forEach((element) => {
             ctx.fillText(labelFunction(element) || "",
-                        xScale(xValues(element)) + padding,
+                        xScale(xValues(element)) + padding + xScale.bandwidth() / 2,
                         yScale(yValues(element)));
         });
     }
@@ -145,8 +145,7 @@ export class StackedBarGraph extends React.Component<State, Data> {
     }
 
     margin() {
-        return Number(document.getElementById("body")
-            .style.margin.replace(/[a-zA-Z]/g, ""));
+        return parseInt(document.getElementById("body").style.margin);
     }
 
     handleClick(evt) {
@@ -155,19 +154,18 @@ export class StackedBarGraph extends React.Component<State, Data> {
             .trim().split(/\s/)[0]);
         let x = evt.clientX - this.margin() + window.scrollX - sp;
         let groupingClick = Math.floor(x / xScale.bandwidth());
-        console.log(groupingClick);
         console.log(groups[Math.floor(x / xScale.bandwidth())]);
     }
 
     calculateScales(props, data) {
         let { height, width, xValues, yValues } = props;
-        let xScale = d3_scale.scaleBand()
+        let xScale = scaleBand()
             .domain(data.map((d, k) => {
                 return xValues(d).toString();
             }))
             .range([20, width]);
-        let yScale = d3_scale.scaleLinear()
-            .domain([0, d3.max(data, yValues)])
+        let yScale = scaleLinear()
+            .domain([0, max(data, yValues)])
             .range([height, 20]);
         let padding = 45;
 
@@ -179,20 +177,16 @@ export class StackedBarGraph extends React.Component<State, Data> {
     render() {
         let { paths, xScale, yScale, canvasPaths, groups, padding } = this.state;
         let { xValues, yValues, width, height, colorBy,
-            colorSpecific, data, labelFunction } = this.props;
+              colorSpecific, data, labelFunction } = this.props;
         return (
             <div style={{ marginBottom: 45, position: "relative",
             height: height}} onClick={this.handleClick.bind(this)}>
                 <Axis title={xValues.name + " vs. " + yValues.name}
-                        xLabel={xValues.name}
-                        yLabel={yValues.name}
-                        xScale={xScale}
-                        yScale={yScale}
-                        padding={padding}
-                        width={width}
-                        height={height}
-                        tickLen={15}>
-                    </Axis>
+                        xLabel={xValues.name} yLabel={yValues.name}
+                        xScale={xScale} yScale={yScale}
+                        padding={padding} width={width}
+                        height={height} tickLen={15}>
+                </Axis>
                 <CanvasDraw width={width + 100}
                     height={height}
                     paths={canvasPaths}

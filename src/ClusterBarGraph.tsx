@@ -36,16 +36,18 @@ class DrawGraph extends React.Component<any, any> {
         if (!canvas.getContext) return;
 
         let { data, xValues, yValues, xScale,
-            yScale, padding, labelFunction } = props;
+            yScale, padding, labelFunction, rectPaths } = props;
+        let bandwidth = xScale.bandwidth();
         let ctx = canvas.getContext("2d");
         ctx.lineWidth = 1;
         ctx.fillStyle = "black";
 
-        data.forEach((element) => {
-            ctx.fillText(labelFunction(element) || "",
-                        xScale(xValues(element)) + padding,
-                        yScale(yValues(element)));
-        });
+        let rects: any[] = flattenDeep(rectPaths);
+        rects.forEach((element, i) => {
+            let label = labelFunction(data[i]) || "";
+            ctx.fillText(label,
+                element.x, element.h);
+        })
     }
 
     render() {
@@ -89,10 +91,9 @@ export class ClusterBarGraph extends React.Component<State, Data> {
 
                 // append onto pending
                 let pending = last(output);
-                let prev = last(pending);
                 let test = (f: Function, x, y) => f(x) !== f(y);
 
-                if (test(xValues, prev, cur)) {
+                if (test(xValues, last(pending), cur)) {
                     return concat(output, [[cur]]);
                 }
                 // append after pending
@@ -106,9 +107,8 @@ export class ClusterBarGraph extends React.Component<State, Data> {
         let bandwidth = xScale.bandwidth();
 
         let result: any = groups.map((g, i) => g.map((d, k) => {
-            return {"x": xScale(xValues(d)) + ((bandwidth / g.length) * k) + padding,
-                "y": yScale(0),
-                "w": (bandwidth / g.length),
+            return { "x": xScale(xValues(d)) + ((bandwidth / g.length) * k) + padding,
+                "y": yScale(0), "w": (bandwidth / g.length),
                 "h": yScale(yValues(d))
             };
         }));
@@ -129,11 +129,9 @@ export class ClusterBarGraph extends React.Component<State, Data> {
             ].join(' ');
             return result;
         }
-
         let result: any = groups.map((g, i) => g.map((d, k) => {
             return path(d);
         }));
-
         return flattenDeep(result);
     }
 
@@ -161,7 +159,6 @@ export class ClusterBarGraph extends React.Component<State, Data> {
     handleClick(evt) {
         let {xScale, rectPaths, groups } = this.state;
         let x = evt.clientX - this.margin() + window.scrollX;
-        console.log(x);
         let sp = rectPaths[0][0].x;
         let groupingClick = (Math.floor((x - sp) / xScale.step()));
         if (x <= xScale.bandwidth() + rectPaths[groupingClick][0].x) {
@@ -173,7 +170,7 @@ export class ClusterBarGraph extends React.Component<State, Data> {
     }
 
     render() {
-        let { xScale, yScale, groups, padding, canvasPaths } = this.state;
+        let { xScale, yScale, groups, padding, canvasPaths, rectPaths } = this.state;
         let { labelFunction, data, xValues, yValues, width,
               height, colorBy, colorSpecific } = this.props;
         return (
@@ -188,7 +185,7 @@ export class ClusterBarGraph extends React.Component<State, Data> {
                 </CanvasDraw>
                 <DrawGraph width={width} height={height} data={data}
                     xScale={xScale} yScale={yScale} xValues={xValues}
-                    yValues={yValues} padding={padding}
+                    yValues={yValues} padding={padding} rectPaths={rectPaths}
                     labelFunction={labelFunction}>
                 </DrawGraph>
                 <Axis title={xValues.name + " vs. " + yValues.name}

@@ -61,7 +61,7 @@ export class Axis extends Component<AxisLines, any> {
         let tickMap = undefined;
         ctx.lineWidth = 1;
         ctx.fillStyle = "black";
-
+        ctx.textAlign = "center";
 
         if( typeof xScale.ticks === "function" ) {
             tickMap = xScale.ticks;
@@ -73,18 +73,20 @@ export class Axis extends Component<AxisLines, any> {
         tickMap().forEach((element) => {
             if (typeof xScale.bandwidth === "function") {
                 x = xScale(element) + padding + xScale.bandwidth() / 2;
+                // text
+                ctx.fillText(element,
+                    x, yScale.range()[0] + tickLen * 2, xScale.bandwidth());
             }
             else {
                 x = xScale(element) + (padding);
+                // text
+                ctx.fillText(element,
+                    x, yScale.range()[0] + tickLen * 2);
             }
 
             // tick
             this.createLine(ctx, x, yScale.range()[0], x,
-                           yScale.range()[0] + tickLen);
-
-            // text
-            ctx.fillText(element,
-                         x, yScale.range()[0] + tickLen * 2);
+                yScale.range()[0] + tickLen);
         });
     }
 
@@ -120,21 +122,36 @@ export class Axis extends Component<AxisLines, any> {
         ctx.font = "16px serif";
         ctx.fillStyle = "black";
 
-        ctx.fillText(xLabel,
-            (xScale.range()[1]) / 2,
-            yScale.range()[0] + tickLen * 3);
-
+        // y label
         // TODO: fix rotation location
         ctx.save();
-        ctx.translate(padding, yScale.range()[0] / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.textAlign = "center";
-        ctx.fillText(yLabel, padding, yScale.range()[0] / 2);
-        ctx.restore();
 
-        ctx.fillText(title,
-            (xScale.range()[1]) / 2,
-            yScale.range()[1]);
+
+        var text = ctx.measureText(yLabel);
+        ctx.translate(text.width/2, yScale.range()[0]/2);
+        ctx.rotate(-(Math.PI/180)*90);
+        ctx.translate(-text.width/2, -yScale.range()[0]/2);
+
+        ctx.fillText(yLabel, yScale.range()[0]/2, 0);
+
+
+        ctx.translate(xScale.range()[0], yScale.range()[0]/2);
+        ctx.rotate(-(Math.PI/180)*90);
+        ctx.translate(-xScale.range()[0], -yScale.range()[0]/2);
+        var text = ctx.measureText(yLabel);
+
+        ctx.fillText(yLabel, 250, 200);
+
+
+        ctx.restore();
+        console.log(parseInt(ctx.font));
+
+        // x label
+        ctx.fillText(xLabel, (xScale.range()[1])/2,
+                     yScale.range()[0] + tickLen * 3);
+
+        // title
+        ctx.fillText(title, xScale.range()[1]/2, yScale.range()[1]);
     }
 
     render() {

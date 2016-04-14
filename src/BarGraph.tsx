@@ -106,7 +106,7 @@ export class BarGraph extends React.Component<State, Data> {
         let bandwidth = xScale.bandwidth();
 
         let result: any = groups.map((g, i) => {
-            return {"x": xScale(xValues(g)) + padding,
+            return { "x": xScale(xValues(g)) + padding,
                 "y": yScale(0),
                 "w": bandwidth,
                 "h": yScale(yValues(g))
@@ -129,9 +129,7 @@ export class BarGraph extends React.Component<State, Data> {
             ].join(' ');
             return result;
         }
-
         let result: any = groups.map(path);
-
         return flattenDeep(result);
     }
 
@@ -164,9 +162,6 @@ export class BarGraph extends React.Component<State, Data> {
         let sp = rectPaths[0].x;
         let x = evt.clientX - this.margin() + window.scrollX - sp;
         console.log(groups[Math.floor(x / xScale.bandwidth())]);
-        return (
-            <div {class:tooltip}>hello!</div>
-        )
     }
 
     render() {
@@ -189,14 +184,10 @@ export class BarGraph extends React.Component<State, Data> {
                     labelFunction={labelFunction}>
                 </DrawGraph>
                 <Axis title={xValues.name + " vs. " + yValues.name}
-                    xLabel={xValues.name}
-                    yLabel={yValues.name}
-                    xScale={xScale}
-                    yScale={yScale}
-                    padding={padding}
-                    width={width}
-                    height={height}
-                    tickLen={15}>
+                    xLabel={xValues.name} yLabel={yValues.name}
+                    xScale={xScale} yScale={yScale}
+                    padding={padding} tickLen={15}
+                    width={width} height={height}>
                 </Axis>
             </div>
         )

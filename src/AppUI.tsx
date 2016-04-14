@@ -76,16 +76,14 @@ export class AppUI extends React.Component<State, Data> {
         if (this.state.valid) {
             let s = { height: 500, width: 5000, scaleType: this.state.scaleType};
             return (
-                <BarGraph
+                <ClusterBarGraph
                     {...Object.assign({}, this.props, s, this.state.scaleType)}
                     />
             )
         }
-        return (
-            <h4>
-                no data or incorrectly formatted data!
-            </h4>
-        )
+        <h4>
+            no data or incorrectly formatted data!
+        </h4>
     }
 
     renderUI() {
@@ -93,7 +91,6 @@ export class AppUI extends React.Component<State, Data> {
             <div>
                 <Predicate name='xValues' bind={this}>Use X Value Function</Predicate>
                 <Predicate name='yValues' bind={this}>Use Y Value Function</Predicate>
-                <p></p>
                 <Predicate name='colorBy' bind={this}>Use Color by Value Function</Predicate>
                 <input type="radio" name="scale" value="ordinal"
                     onChange={this.handleRadioSubmit.bind(this)}>
@@ -101,10 +98,8 @@ export class AppUI extends React.Component<State, Data> {
                 <input type="radio" name="scale" value="continuous"
                     onChange={this.handleRadioSubmit.bind(this)}>
                     </input><text>Continuous</text>
-                <p></p>
                 <Predicate name='colorSpecific' bind={this}>Use Color Value Function</Predicate>
                 <Predicate name='labelFunction' bind={this}>Use Label Function</Predicate>
-                <p></p>
                 <Predicate name='filterreject' bind={this} func={this.filterRejectData}>Use filter/reject</Predicate>
                 <Predicate name='sample' bind={this} func={this.sampleData}>Use Sample Size</Predicate>
             </div>
