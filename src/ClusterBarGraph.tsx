@@ -170,8 +170,8 @@ export class ClusterBarGraph extends React.Component<State, Data> {
     }
 
     render() {
-        let { xScale, yScale, groups, padding, canvasPaths, rectPaths } = this.state;
-        let { labelFunction, data, xValues, yValues, width,
+        let { xScale, yScale, groups, padding, canvasPaths, rectPaths, sortedData } = this.state;
+        let { labelFunction, xValues, yValues, width,
               height, colorBy, colorSpecific } = this.props;
         return (
             <div style={{ marginBottom: 45, position: "relative",
@@ -183,7 +183,7 @@ export class ClusterBarGraph extends React.Component<State, Data> {
                     colorSpecific={colorSpecific}
                     dataOrder={flattenDeep(groups)}>
                 </CanvasDraw>
-                <DrawGraph width={width} height={height} data={data}
+                <DrawGraph width={width} height={height} data={sortedData}
                     xScale={xScale} yScale={yScale} xValues={xValues}
                     yValues={yValues} padding={padding} rectPaths={rectPaths}
                     labelFunction={labelFunction}>
