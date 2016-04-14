@@ -1,5 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import { Observable } from 'rx';
+import { retrieve } from './retrieve';
 import { AreaGraph } from './areagraph';
 import { BarGraph } from './BarGraph';
 import { StackedBarGraph } from './StackedBarGraph';
@@ -66,6 +68,19 @@ export class AppUI extends React.Component<State, Data> {
             console.log("NO");
             this.setState({ valid: false });
         }
+    }
+
+    loadUrls(urls: string[]) {
+        let data = [];
+        Observable
+            .from(urls)
+            .flatMap(uri => retrieve<any>({ uri, withCredentials: false } as any))
+            .bufferWithCount(100)
+            .subscribe(
+                e => data.push(e),
+                err => console.log(err),
+                () => 0 // look inside 'data'
+            );
     }
 
     handleRadioSubmit(evt) {

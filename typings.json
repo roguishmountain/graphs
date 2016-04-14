@@ -1,14 +1,19 @@
 {
   "ambientDependencies": {
     "d3": "github:DefinitelyTyped/DefinitelyTyped/d3/d3.d.ts#fab683ca77d0286b9d51aba6375deaceb41b22f5",
+    "jsonstream": "registry:dt/jsonstream#0.8.0+20160316155526",
+    "node": "registry:dt/node#4.0.0+20160412142033",
     "react": "github:DefinitelyTyped/DefinitelyTyped/react/react.d.ts#fab683ca77d0286b9d51aba6375deaceb41b22f5",
     "react-dom": "github:DefinitelyTyped/DefinitelyTyped/react/react-dom.d.ts#fab683ca77d0286b9d51aba6375deaceb41b22f5",
-    "rx": "npm:rx/ts/rx.all.d.ts"
+    "rx": "registry:dt/rx#2.5.3+20150720134954",
+    "rx-lite": "registry:dt/rx-lite#0.0.0+20160412141706",
+    "rx.binding-lite": "registry:dt/rx.binding-lite#0.0.0+20160316171810"
   },
   "dependencies": {
     "Path2D": "file:typings/paths/Path2D.d.ts",
     "d3-scale": "github:roguishmountain/typing/scales/index.d.ts#01dd10e80d7f86c2fa9402c114509ca504675726",
     "d3-shape": "github:roguishmountain/typing/shapes/index.d.ts#01dd10e80d7f86c2fa9402c114509ca504675726",
-    "lodash": "registry:npm/lodash#4.0.0+20160305082308"
+    "lodash": "registry:npm/lodash#4.0.0+20160305082308",
+    "request": "registry:npm/request#2.69.0+20160304121250"
   }
 }

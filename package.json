@@ -14,9 +14,13 @@
   "license": "ISC",
   "dependencies": {
     "babel-core": "^6.4.0",
+    "json-loader": "^0.5.4",
+    "jsonstream": "^1.0.3",
     "lodash": "^4.0.0",
+    "parse-link-header": "^0.4.1",
     "react": "^0.14.6",
-    "react-dom": "^0.14.6"
+    "react-dom": "^0.14.6",
+    "request": "^2.71.0"
   },
   "devDependencies": {
     "babel-core": "^6.4.5",
