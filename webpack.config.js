@@ -31,24 +31,31 @@ module.exports = {
     },
 
     module: {
-        loaders: [{
-            test: /\.ts(x?)$/,
-            exclude: /node_modules/,
-            loader: 'babel-loader?presets[]=es2015&presets[]=react!ts-loader'
-        }, {
+        noParse: /node_modules\/json-schema\/lib\/validate\.js/,
+        loaders: [
+            {
+                test: /\.ts(x?)$/,
+                exclude: /node_modules/,
+                loader: 'babel-loader?presets[]=es2015&presets[]=react!ts-loader'
+            },
+            {
                 test: /\.js$/,
                 exclude: /node_modules/,
                 loader: 'babel?cacheDirectory',
                 query: {
                     presets: ['es2015', 'react']
                 }
-            }]
+            },
+            {
+                test: /\.json$/,
+                loaders: ['json-loader']
+            }
+        ]
+    },
+     node: {
+        console: true,
+        fs: 'empty',
+        net: 'empty',
+        tls: 'empty'
     }
-    //   },
-    //     module: {
-    //         loaders: [
-    //             // all files with a `.ts` or `.tsx` extension will be handled by `ts-loader`
-    //             { test: /\.tsx?$/, loader: 'babel?loose=all!ts', include: path.join(__dirname, 'src') }
-    //         ]
-    //     }
 }
