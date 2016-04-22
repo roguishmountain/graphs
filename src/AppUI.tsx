@@ -21,23 +21,9 @@ class Predicate extends React.Component<any, any> {
     handleDefaultSubmit(evt) {
         let { bind, name, func } = this.props;
         let value = bind[name].value;
-        if (func) {
-            functionChanged(name, value);
-            func(name, value);
-        }
-        else {
-            this.handleSubmit(name, value);
-        }
-    }
+        functionChanged(name, value);
+        func(name, value);
 
-    handleSubmit(name, value) {
-        let colorBorder = JSON.parse(value);
-        colorBorder.forEach((block) => {
-            for (let title in block) {
-                let fn = new Function('entry', `${block[title]}`);
-                functionChanged(title, fn);
-            }
-        })
     }
 
     render() {
@@ -64,25 +50,35 @@ export class AppUI extends React.Component<State, Data> {
 
     handleSubmit(name, evt) {
         let inputType = window.location.href.split("#")[1];
+        let valuesFromBox = this[name].value;
+        let parsedVal = undefined;
         if (inputType == "url") {
             this.setState({ valid: true });
-            let urls = this[name].value.split("\n");
+            parsedVal = JSON.parse(valuesFromBox);
+            let urls = parsedVal.data;
             this.loadUrls(urls);
         }
-        else if (inputType == "data") {
+        else if(inputType == "data") {
             try {
-                let parsedVal = JSON.parse(this[name].value);
+                parsedVal = JSON.parse(valuesFromBox);
                 let { sample, filterreject } = this.props;
                 this.setState({ valid: true });
-                functionChanged("data", parsedVal);
+                functionChanged("data", parsedVal.data);
 
             } catch (SyntaxError) {
                 console.log("NO");
                 this.setState({ valid: false });
             }
         }
-        else {
-            console.log("set default");
+
+        let params = parsedVal.param;
+        if (params) {
+            params.forEach((block) => {
+            for (let title in block) {
+                let fn = new Function('entry', `${block[title]}`);
+                functionChanged(title, fn);
+            }
+        })
         }
     }
 
@@ -138,7 +134,6 @@ export class AppUI extends React.Component<State, Data> {
     renderUI() {
         return (
             <div>
-                <Predicate name='dataFormat' bind={this}>Specify Data Format</Predicate>
                 <input type="radio" name="scale" value="ordinal"
                     onChange={this.handleRadioSubmit.bind(this)}>
                     </input><text>Ordinal</text>
