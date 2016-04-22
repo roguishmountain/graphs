@@ -1,5 +1,5 @@
 import { Subject } from 'rx';
-import { curry, eq, reduce, sampleSize, split } from 'lodash';
+import { curry } from 'lodash';
 import { State } from './State';
 
 export interface Action { (state: State): State };

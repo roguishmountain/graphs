@@ -8,7 +8,7 @@ import { StackedBarGraph } from './StackedBarGraph';
 import { LinePlot } from './LinePlot';
 import { ClusterBarGraph } from './ClusterBarGraph';
 import { State } from './State';
-import { reduce, sampleSize, split, take } from 'lodash';
+import { flatten, reduce, sampleSize, split, take } from 'lodash';
 import { functionChanged, dataChanged } from './Actions';
 
 interface Data {
@@ -21,15 +21,23 @@ class Predicate extends React.Component<any, any> {
     handleDefaultSubmit(evt) {
         let { bind, name, func } = this.props;
         let value = bind[name].value;
-        let oldData = bind.data.value;
-        let submit = func || this.handleSubmit;
-        submit(name, value, JSON.parse(oldData));
+        if (func) {
+            functionChanged(name, value);
+            func(name, value);
+        }
+        else {
+            this.handleSubmit(name, value);
+        }
     }
 
     handleSubmit(name, value) {
-        let fn = new Function('entry', `${value}`);
-        Object.defineProperty(fn, 'name', { value });
-        functionChanged(name, fn);
+        let colorBorder = JSON.parse(value);
+        colorBorder.forEach((block) => {
+            for (let title in block) {
+                let fn = new Function('entry', `${block[title]}`);
+                functionChanged(title, fn);
+            }
+        })
     }
 
     render() {
@@ -55,31 +63,50 @@ export class AppUI extends React.Component<State, Data> {
     }
 
     handleSubmit(name, evt) {
-        try {
-            let parsedVal = JSON.parse(this[name].value);
-            let { sample, filterreject } = this.props;
+        let inputType = window.location.href.split("#")[1];
+        if (inputType == "url") {
             this.setState({ valid: true });
+            let urls = this[name].value.split("\n");
+            this.loadUrls(urls);
+        }
+        else if (inputType == "data") {
+            try {
+                let parsedVal = JSON.parse(this[name].value);
+                let { sample, filterreject } = this.props;
+                this.setState({ valid: true });
+                functionChanged("data", parsedVal);
 
-            parsedVal = this.filterRejectData("filterreject", filterreject,
-                this.sampleData("sample", sample, parsedVal));
-            functionChanged("data", parsedVal);
-
-        } catch (SyntaxError) {
-            console.log("NO");
-            this.setState({ valid: false });
+            } catch (SyntaxError) {
+                console.log("NO");
+                this.setState({ valid: false });
+            }
+        }
+        else {
+            console.log("set default");
         }
     }
 
     loadUrls(urls: string[]) {
         let data = [];
+
+        // let headers = {
+        //     'User-Agent': 'node',
+        //     'Authorization': `Basic ${btoa(`${username}:${token}`)}`
+        // } as any;
+
+        function handleChange(data) {
+            functionChanged("data", data);
+        }
+
         Observable
             .from(urls)
+            // .flatMap(uri => retrieve<any>({ uri, headers, withCredentials: false } as any, ['allBuilds', true]))
             .flatMap(uri => retrieve<any>({ uri, withCredentials: false } as any))
             .bufferWithCount(100)
             .subscribe(
                 e => data.push(e),
                 err => console.log(err),
-                () => 0 // look inside 'data'
+                () => handleChange(flatten(data)) // look inside 'data'
             );
     }
 
@@ -89,10 +116,17 @@ export class AppUI extends React.Component<State, Data> {
 
     renderGraph() {
         if (this.state.valid) {
-            let s = { height: 500, width: 5000, scaleType: this.state.scaleType};
+            let { sample, filterreject } = this.props;
+
+            let newData = this.props.data;
+            newData = this.filterRejectData("filterreject", filterreject,
+                this.sampleData("sample", sample, newData));
+
+            let s = { data: newData, height: 500, width: 5000, scaleType: this.state.scaleType};
+            console.log("updated");
             return (
                 <ClusterBarGraph
-                    {...Object.assign({}, this.props, s, this.state.scaleType)}
+                    {...Object.assign({}, this.props, s)}
                     />
             )
         }
@@ -104,17 +138,13 @@ export class AppUI extends React.Component<State, Data> {
     renderUI() {
         return (
             <div>
-                <Predicate name='xValues' bind={this}>Use X Value Function</Predicate>
-                <Predicate name='yValues' bind={this}>Use Y Value Function</Predicate>
-                <Predicate name='colorBy' bind={this}>Use Color by Value Function</Predicate>
+                <Predicate name='dataFormat' bind={this}>Specify Data Format</Predicate>
                 <input type="radio" name="scale" value="ordinal"
                     onChange={this.handleRadioSubmit.bind(this)}>
                     </input><text>Ordinal</text>
                 <input type="radio" name="scale" value="continuous"
                     onChange={this.handleRadioSubmit.bind(this)}>
                     </input><text>Continuous</text>
-                <Predicate name='colorSpecific' bind={this}>Use Color Value Function</Predicate>
-                <Predicate name='labelFunction' bind={this}>Use Label Function</Predicate>
                 <Predicate name='filterreject' bind={this} func={this.filterRejectData}>Use filter/reject</Predicate>
                 <Predicate name='sample' bind={this} func={this.sampleData}>Use Sample Size</Predicate>
             </div>
@@ -123,7 +153,6 @@ export class AppUI extends React.Component<State, Data> {
 
     sampleData(name, n, data) {
         let newData = (n && n > 0) ? sampleSize(data, n) : data;
-        dataChanged(name, n, newData);
         return newData;
     }
 
@@ -138,20 +167,33 @@ export class AppUI extends React.Component<State, Data> {
         else {
             newData = data;
         }
-        dataChanged(name, filterReject, newData);
         return newData;
     }
 
     render() {
         return (
             <div>
-            <textarea
-                rows={10} cols={75}
-                ref={r => this["data"] = r}>
+            <div style={{backgroundColor: "#CCC"}}>
+                <div>
+                    <div id="url" style={{ padding: "15px", border: "1px solid #CCC",
+                    backgroundColor: "#DDD", width: "30px", height: "20px", margin: "5px",
+                    display: "inline-block", boxShadow:"0 0 5px -1px rgba(0,0,0,0.2)" }}>
+                        <a href="#url">URL</a>
+                    </div>
+                    <div id="url" style={{ padding: "15px", border: "1px solid #CCC",
+                    backgroundColor: "#DDD", width: "30px", height: "20px", margin: "5px",
+                    display: "inline-block", boxShadow:"0 0 5px -1px rgba(0,0,0,0.2)" }}>
+                        <a href="#data">Data</a>
+                    </div>
+                </div>
+                <textarea style={{ padding: "25px"}}
+                    rows={10} cols={75}
+                    ref={r => this["data"] = r}>
                 </textarea>
                 <button onClick={this.handleSubmit.bind(this, "data")}>
                     Parse
                 </button>
+                </div>
                 {this.renderGraph()}
                 {this.renderUI()}
             </div>

@@ -4,6 +4,7 @@ import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
 import { Axis } from './Axis';
+import { YAxis } from './YAxis';
 import { State } from './State';
 import { merge, reject, reduce,
          sortBy, split } from 'lodash';
@@ -160,6 +161,13 @@ export class LinePlot extends React.Component<State, Data> {
                         height={height}
                         tickLen={15}>
                     </Axis>
+                    <YAxis xScale={xScale}
+                    yScale={yScale}
+                    padding={padding}
+                    width={width}
+                    height={height}
+                    tickLen={15}>
+                </YAxis>
             </div>
         )
     }

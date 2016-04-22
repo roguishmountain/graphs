@@ -1,4 +1,5 @@
 import { Component, createElement } from 'react';
+import { uniqBy } from 'lodash';
 
 interface AxisLines { yLabel: any,
                       xLabel: any,
@@ -8,7 +9,10 @@ interface AxisLines { yLabel: any,
                       padding: number
                       width?: number;
                       height?: number
-                      tickLen?: number;}
+                      tickLen?: number;
+                    colorScale?: any;
+                    data?: any;
+                colorBy?: any;}
 
 export class Axis extends Component<AxisLines, any> {
     canvas: any;
@@ -16,17 +20,17 @@ export class Axis extends Component<AxisLines, any> {
     componentDidMount() {
         this.drawAxisLines(this.canvas, this.props);
         this.drawXTicks(this.canvas, this.props);
-        this.drawYTicks(this.canvas, this.props);
         this.drawLabels(this.canvas, this.props);
+        this.drawLegend(this.canvas, this.props);
     }
 
     componentWillReceiveProps(nextProps) {
         let ctx = this.canvas.getContext("2d");
-        ctx.clearRect(0, 0, this.props.width, this.props.height + 50);
+        ctx.clearRect(0, 0, this.props.width + this.props.padding, this.props.height + 250);
         this.drawAxisLines(this.canvas, nextProps);
         this.drawXTicks(this.canvas, nextProps);
-        this.drawYTicks(this.canvas, nextProps);
         this.drawLabels(this.canvas, nextProps);
+        this.drawLegend(this.canvas, nextProps);
     }
 
     drawAxisLines(canvas, props) {
@@ -90,28 +94,6 @@ export class Axis extends Component<AxisLines, any> {
         });
     }
 
-    drawYTicks(canvas, props) {
-        if (!canvas.getContext) return;
-
-        let { xScale, yScale, padding, tickLen } = props;
-        let ctx = canvas.getContext("2d");
-        ctx.lineWidth = 1;
-        ctx.fillStyle = "black";
-
-        yScale.ticks().forEach((element) => {
-            // let x = (padding) + 20;
-            let x = xScale(xScale.domain()[0]) + padding;
-            let y = yScale(element);
-
-            // tick
-            this.createLine(ctx, x, y, x - tickLen, y);
-
-            // text
-            ctx.fillText(element,
-                         x - tickLen * 2, y);
-        });
-    }
-
     drawLabels(canvas, props) {
         if (!canvas.getContext) return;
 
@@ -125,8 +107,6 @@ export class Axis extends Component<AxisLines, any> {
         // y label
         // TODO: fix rotation location
         ctx.save();
-
-
         var text = ctx.measureText(yLabel);
         ctx.translate(text.width/2, yScale.range()[0]/2);
         ctx.rotate(-(Math.PI/180)*90);
@@ -134,17 +114,13 @@ export class Axis extends Component<AxisLines, any> {
 
         ctx.fillText(yLabel, yScale.range()[0]/2, 0);
 
-
         ctx.translate(xScale.range()[0], yScale.range()[0]/2);
         ctx.rotate(-(Math.PI/180)*90);
         ctx.translate(-xScale.range()[0], -yScale.range()[0]/2);
         var text = ctx.measureText(yLabel);
-
         ctx.fillText(yLabel, 250, 200);
-
-
         ctx.restore();
-        console.log(parseInt(ctx.font));
+        // console.log(parseInt(ctx.font));
 
         // x label
         ctx.fillText(xLabel, (xScale.range()[1])/2,
@@ -154,10 +130,29 @@ export class Axis extends Component<AxisLines, any> {
         ctx.fillText(title, xScale.range()[1]/2, yScale.range()[1]);
     }
 
+    drawLegend(canvas, props) {
+        let { colorScale, colorBy, data, xScale, yScale, tickLen, padding } = props;
+        if (!canvas.getContext) return;
+
+        let ctx = canvas.getContext("2d");
+        ctx.textAllign = "start";
+        let unique = uniqBy(data, colorBy).map(d => colorBy(d))
+            .map((d) => {
+                return { [d]: colorScale(d) };
+            });
+        let y = yScale.range()[0] + tickLen * 3;
+        unique.forEach((d, i) => {
+            for (let key in d) {
+                ctx.fillStyle = d[key];
+                ctx.fillText(key, (xScale.range()[0]) + padding, y + ((i + 1) * 20));
+            }
+        })
+    }
+
     render() {
         let ref = (c) => this.canvas = c;
-        let width = this.props.width;
-        let height = this.props.height;
+        let width = this.props.width + this.props.padding;
+        let height = this.props.height + 200;
         let style = {position: "absolute"};
 
         return createElement

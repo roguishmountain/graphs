@@ -3,6 +3,7 @@ import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
 import { Axis } from './Axis';
+import { YAxis } from './YAxis';
 import { CanvasDraw } from './CanvasDraw';
 import { State } from './State';
 import { concat, dropRight, flattenDeep, isEmpty, isEqual,
@@ -16,6 +17,7 @@ interface Data {
     yScale?: any;
     canvasPaths?: any[];
     rectPaths?: any[];
+    colorScale?: any;
 }
 
 class DrawGraph extends React.Component<any, any> {
@@ -84,7 +86,7 @@ export class BarGraph extends React.Component<State, Data> {
     }
 
     calculateScales(props, data) {
-        let { height, width, xValues, yValues, colorSpecific } = props;
+        let { height, width, xValues, yValues, colorBy } = props;
         let xScale = d3_scale.scaleBand()
             .domain(data.map((d, k) => {
                 return xValues(d).toString();
@@ -95,8 +97,11 @@ export class BarGraph extends React.Component<State, Data> {
             .range([height, 20]);
         let padding = 45;
 
+        let colorScale = d3_scale.scaleCategory20()
+                         .domain(data.map(colorBy));
+
         return {
-            xScale, yScale, padding
+            xScale, yScale, padding, colorBy
         };
     }
 
@@ -165,9 +170,9 @@ export class BarGraph extends React.Component<State, Data> {
     }
 
     render() {
-        let { xScale, yScale, padding, groups, canvasPaths } = this.state;
+        let { xScale, yScale, padding, groups, canvasPaths, colorScale } = this.state;
         let { xValues, yValues, width, height, colorBy, colorSpecific,
-            data, labelFunction } = this.props;
+            data, labelFunction, borderColor, borderSize } = this.props;
         return (
             <div style={{ marginBottom: 45, position: "relative",
             height: height }} onClick={this.handleClick.bind(this)}>
@@ -176,7 +181,11 @@ export class BarGraph extends React.Component<State, Data> {
                     paths={canvasPaths}
                     colorBy={colorBy}
                     colorSpecific={colorSpecific}
-                    dataOrder={flattenDeep(groups)}>
+                    dataOrder={flattenDeep(groups)}
+                    borderColor={borderColor}
+                    borderSize={borderSize}
+                    padding={padding}
+                    colorScale={colorScale}>
                 </CanvasDraw>
                 <DrawGraph width={width} height={height} data={data}
                     xScale={xScale} yScale={yScale} xValues={xValues}
@@ -187,8 +196,18 @@ export class BarGraph extends React.Component<State, Data> {
                     xLabel={xValues.name} yLabel={yValues.name}
                     xScale={xScale} yScale={yScale}
                     padding={padding} tickLen={15}
-                    width={width} height={height}>
+                    width={width} height={height}
+                    colorScale={colorScale}
+                    data={data}>
+                    colorBy={colorBy}
                 </Axis>
+                <YAxis xScale={xScale}
+                    yScale={yScale}
+                    padding={padding}
+                    width={width}
+                    height={height}
+                    tickLen={15}>
+                </YAxis>
             </div>
         )
     }

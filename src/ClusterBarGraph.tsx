@@ -4,6 +4,7 @@ import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
 import { Axis } from './Axis';
+import { YAxis } from './YAxis';
 import { State } from './State';
 import { CanvasDraw } from './CanvasDraw';
 import { concat, dropRight, flattenDeep, groupBy, isEmpty, isEqual,
@@ -17,6 +18,7 @@ interface Data {
     sortedData?: any[];
     rectPaths?: any[][];
     canvasPaths?: any[];
+    colorScale?: any;
 }
 
 class DrawGraph extends React.Component<any, any> {
@@ -40,6 +42,7 @@ class DrawGraph extends React.Component<any, any> {
         let bandwidth = xScale.bandwidth();
         let ctx = canvas.getContext("2d");
         ctx.lineWidth = 1;
+        ctx.font = "12px Arial"
         ctx.fillStyle = "black";
 
         let rects: any[] = flattenDeep(rectPaths);
@@ -74,7 +77,7 @@ export class ClusterBarGraph extends React.Component<State, Data> {
     }
 
     componentWillReceiveProps(nextProps) {
-        let { data, xValues } = nextProps;
+        let { data, xValues, colorBy } = nextProps;
         let sortedData = sortBy(data, xValues);
         let scales = this.calculateScales(nextProps, sortedData);
         let groups: any[][] = this.dataToGroups(sortedData, xValues);
@@ -140,7 +143,7 @@ export class ClusterBarGraph extends React.Component<State, Data> {
     }
 
     calculateScales(props, data) {
-        let { height, width, xValues, yValues } = props;
+        let { height, width, xValues, yValues, colorBy } = props;
 
         let padding = 45;
         let xScale = d3_scale.scaleBand()
@@ -151,37 +154,47 @@ export class ClusterBarGraph extends React.Component<State, Data> {
             .domain([0, d3.max(data, yValues)])
             .range([height, 20]);
 
+        let colorScale = d3_scale.scaleCategory20()
+                         .domain(data.map(colorBy));
+
         return {
-            xScale, yScale, padding
+            xScale, yScale, colorScale, padding
         };
     }
 
     handleClick(evt) {
         let {xScale, rectPaths, groups } = this.state;
         let x = evt.clientX - this.margin() + window.scrollX;
+        let y = evt.clientY - window.scrollY;
+        console.log(y);
         let sp = rectPaths[0][0].x;
         let groupingClick = (Math.floor((x - sp) / xScale.step()));
-        if (x <= xScale.bandwidth() + rectPaths[groupingClick][0].x) {
-            let cluster = groups[Math.floor(x / xScale.step())];
+        if (rectPaths[groupingClick] && x <= xScale.bandwidth() + rectPaths[groupingClick][0].x) {
+            let cluster = groups[groupingClick];
             let bar = Math.floor((x - rectPaths[groupingClick][0].x) /
                 (xScale.bandwidth() / cluster.length));
-            console.log(cluster[bar], bar);
+            console.log(cluster[bar]);
         }
     }
 
     render() {
-        let { xScale, yScale, groups, padding, canvasPaths, rectPaths, sortedData } = this.state;
+        let { xScale, yScale, groups, padding, canvasPaths, rectPaths,
+            colorScale, sortedData } = this.state;
         let { labelFunction, xValues, yValues, width,
-              height, colorBy, colorSpecific } = this.props;
+              height, colorBy, colorSpecific, borderColor, borderSize } = this.props;
         return (
             <div style={{ marginBottom: 45, position: "relative",
-            height: height, width: width}} onClick={this.handleClick.bind(this)}>
+            height: height+200, width: width}} onClick={this.handleClick.bind(this)}>
                 <CanvasDraw width={width}
                     height={height}
                     paths={canvasPaths}
                     colorBy={colorBy}
                     colorSpecific={colorSpecific}
-                    dataOrder={flattenDeep(groups)}>
+                    borderColor={borderColor}
+                    borderSize={borderSize}
+                    dataOrder={flattenDeep(groups)}
+                    padding={padding}
+                    colorScale={colorScale}>
                 </CanvasDraw>
                 <DrawGraph width={width} height={height} data={sortedData}
                     xScale={xScale} yScale={yScale} xValues={xValues}
@@ -196,8 +209,18 @@ export class ClusterBarGraph extends React.Component<State, Data> {
                     padding={padding}
                     width={width}
                     height={height}
-                    tickLen={15}>
+                    tickLen={15}
+                    colorScale={colorScale}
+                    data={sortedData}
+                    colorBy={colorBy}>
                 </Axis>
+                <YAxis xScale={xScale}
+                    yScale={yScale}
+                    padding={padding}
+                    width={width}
+                    height={height}
+                    tickLen={15}>
+                </YAxis>
             </div>
         )
     }

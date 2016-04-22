@@ -1,8 +1,9 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { scaleBand, scaleLinear } from 'd3-scale';
+import { scaleBand, scaleLinear, scaleCategory20 } from 'd3-scale';
 import { max } from 'd3';
 import { Axis } from './Axis';
+import { YAxis } from './YAxis';
 import { State } from './State';
 import { CanvasDraw } from './CanvasDraw';
 import { concat, dropRight, flattenDeep, groupBy, isEmpty, isEqual,
@@ -17,6 +18,7 @@ interface Data {
     canvasPaths?: any;
     rectPaths?: any[];
     sortedData?: any;
+    colorScale?: any;
 }
 
 class DrawGraph extends React.Component<any, any> {
@@ -158,7 +160,7 @@ export class StackedBarGraph extends React.Component<State, Data> {
     }
 
     calculateScales(props, data) {
-        let { height, width, xValues, yValues } = props;
+        let { height, width, xValues, yValues, colorBy } = props;
         let xScale = scaleBand()
             .domain(data.map((d, k) => {
                 return xValues(d).toString();
@@ -169,15 +171,18 @@ export class StackedBarGraph extends React.Component<State, Data> {
             .range([height, 20]);
         let padding = 45;
 
+        let colorScale = scaleCategory20()
+                         .domain(data.map(colorBy));
+
         return {
-           xScale, yScale, padding
+           xScale, yScale, padding, colorScale
         };
     }
 
     render() {
-        let { paths, xScale, yScale, canvasPaths, groups, padding } = this.state;
+        let { paths, xScale, yScale, canvasPaths, groups, padding, colorScale } = this.state;
         let { xValues, yValues, width, height, colorBy,
-              colorSpecific, data, labelFunction } = this.props;
+              colorSpecific, data, labelFunction, borderColor, borderSize } = this.props;
         return (
             <div style={{ marginBottom: 45, position: "relative",
             height: height}} onClick={this.handleClick.bind(this)}>
@@ -185,14 +190,28 @@ export class StackedBarGraph extends React.Component<State, Data> {
                         xLabel={xValues.name} yLabel={yValues.name}
                         xScale={xScale} yScale={yScale}
                         padding={padding} width={width}
-                        height={height} tickLen={15}>
+                        height={height} tickLen={15}
+                        colorScale={colorScale}
+                        data={data}
+                        colorBy={colorBy}>
                 </Axis>
+                <YAxis xScale={xScale}
+                    yScale={yScale}
+                    padding={padding}
+                    width={width}
+                    height={height}
+                    tickLen={15}>
+                </YAxis>
                 <CanvasDraw width={width + 100}
                     height={height}
                     paths={canvasPaths}
                     colorBy={colorBy}
                     colorSpecific={colorSpecific}
-                    dataOrder={flattenDeep(groups)}>
+                    dataOrder={flattenDeep(groups)}
+                    borderColor={borderColor}
+                    borderSize={borderSize}
+                    padding={padding}
+                    colorScale={colorScale}>
                 </CanvasDraw>
                 <DrawGraph width={width} height={height} data={data}
                     xScale={xScale} yScale={yScale} xValues={xValues}
