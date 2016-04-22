@@ -101,7 +101,7 @@ export class BarGraph extends React.Component<State, Data> {
                          .domain(data.map(colorBy));
 
         return {
-            xScale, yScale, padding, colorBy
+            xScale, yScale, colorScale, padding
         };
     }
 
@@ -175,7 +175,7 @@ export class BarGraph extends React.Component<State, Data> {
             data, labelFunction, borderColor, borderSize } = this.props;
         return (
             <div style={{ marginBottom: 45, position: "relative",
-            height: height }} onClick={this.handleClick.bind(this)}>
+            height: height+200 }} onClick={this.handleClick.bind(this)}>
                 <CanvasDraw width={width + 100}
                     height={height}
                     paths={canvasPaths}
@@ -195,11 +195,11 @@ export class BarGraph extends React.Component<State, Data> {
                 <Axis title={xValues.name + " vs. " + yValues.name}
                     xLabel={xValues.name} yLabel={yValues.name}
                     xScale={xScale} yScale={yScale}
-                    padding={padding} tickLen={15}
-                    width={width} height={height}
+                    padding={padding} width={width}
+                    height={height} tickLen={15}
                     colorScale={colorScale}
-                    data={data}>
-                    colorBy={colorBy}
+                    data={data}
+                    colorBy={colorBy}>
                 </Axis>
                 <YAxis xScale={xScale}
                     yScale={yScale}

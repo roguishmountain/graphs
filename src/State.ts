@@ -18,7 +18,7 @@ export const InitialState: State = {
     height: 500,
     width: 1000,
     colorBy: new Function('entry', 'return entry.status'),
-    xValues: new Function('entry', 'return entry.workhost'),
+    xValues: new Function('entry', 'return entry.id'),
     yValues: new Function('entry', 'return entry.duration'),
     labelFunction: new Function('entry', ''),
     colorSpecific: new Function('entry', ''),

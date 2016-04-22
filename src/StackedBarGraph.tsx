@@ -185,7 +185,7 @@ export class StackedBarGraph extends React.Component<State, Data> {
               colorSpecific, data, labelFunction, borderColor, borderSize } = this.props;
         return (
             <div style={{ marginBottom: 45, position: "relative",
-            height: height}} onClick={this.handleClick.bind(this)}>
+            height: height+200}} onClick={this.handleClick.bind(this)}>
                 <Axis title={xValues.name + " vs. " + yValues.name}
                         xLabel={xValues.name} yLabel={yValues.name}
                         xScale={xScale} yScale={yScale}
