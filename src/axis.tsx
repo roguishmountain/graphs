@@ -10,9 +10,9 @@ interface AxisLines { yLabel: any,
                       width?: number;
                       height?: number
                       tickLen?: number;
-                    colorScale?: any;
-                    data?: any;
-                colorBy?: any;}
+                      colorScale?: any;
+                      data?: any;
+                      colorBy?: any;}
 
 export class Axis extends Component<AxisLines, any> {
     canvas: any;

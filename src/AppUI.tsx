@@ -55,10 +55,11 @@ export class AppUI extends React.Component<State, Data> {
         if (inputType == "url") {
             this.setState({ valid: true });
             parsedVal = JSON.parse(valuesFromBox);
+            //console.log(parsedVal);
             let urls = parsedVal.data;
             this.loadUrls(urls);
         }
-        else if(inputType == "data") {
+        else {
             try {
                 parsedVal = JSON.parse(valuesFromBox);
                 let { sample, filterreject } = this.props;
@@ -84,7 +85,7 @@ export class AppUI extends React.Component<State, Data> {
 
     loadUrls(urls: string[]) {
         let data = [];
-
+        
         // let headers = {
         //     'User-Agent': 'node',
         //     'Authorization': `Basic ${btoa(`${username}:${token}`)}`
@@ -111,15 +112,16 @@ export class AppUI extends React.Component<State, Data> {
     }
 
     renderGraph() {
-        if (this.state.valid) {
-            let { sample, filterreject } = this.props;
-
-            let newData = this.props.data;
+        let { sample, filterreject, data } = this.props;
+        if (this.state.valid && data) {
+            let newData = data;
             newData = this.filterRejectData("filterreject", filterreject,
                 this.sampleData("sample", sample, newData));
 
             let s = { data: newData, height: 500, width: 5000, scaleType: this.state.scaleType};
             console.log("updated");
+            //console.log(data);
+            //console.log(newData);
             return (
                 <ClusterBarGraph
                     {...Object.assign({}, this.props, s)}

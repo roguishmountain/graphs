@@ -85,17 +85,37 @@ export class BarGraph extends React.Component<State, Data> {
         this.setState(merge({ groups, canvasPaths, rectPaths }, scales));
     }
 
+    // calculateScales(props, data) {
+    //     let { height, width, xValues, yValues, colorBy } = props;
+
+    //     let xScale = d3_scale.scaleBand()
+    //         .domain(data.map((d, k) => {
+    //             return xValues(d).toString();
+    //         }))
+    //         .range([20, width]);
+    //     let yScale = d3_scale.scaleLinear()
+    //         .domain([0, d3.max(data, yValues)])
+    //         .range([height, 20]);
+    //     let padding = 45;
+
+    //     let colorScale = d3_scale.scaleCategory20()
+    //                      .domain(data.map(colorBy));
+
+    //     return {
+    //         xScale, yScale, colorScale, padding
+    //     };
+    // }
+    
     calculateScales(props, data) {
         let { height, width, xValues, yValues, colorBy } = props;
+
+        let padding = 45;
         let xScale = d3_scale.scaleBand()
-            .domain(data.map((d, k) => {
-                return xValues(d).toString();
-            }))
-            .range([20, width]);
+            .domain(data.map((d) =>  xValues(d).toString()))
+            .rangeRound([20, width]);
         let yScale = d3_scale.scaleLinear()
             .domain([0, d3.max(data, yValues)])
             .range([height, 20]);
-        let padding = 45;
 
         let colorScale = d3_scale.scaleCategory20()
                          .domain(data.map(colorBy));
