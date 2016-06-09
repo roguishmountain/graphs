@@ -12,6 +12,7 @@ export interface State {
     data: {}[];
     borderColor: Function;
     borderSize: any;
+    uris?: string[];
 }
 
 export const InitialState: State = {

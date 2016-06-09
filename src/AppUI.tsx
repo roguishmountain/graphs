@@ -2,14 +2,11 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { Observable } from 'rx';
 import { retrieve } from './retrieve';
-import { AreaGraph } from './areagraph';
-import { BarGraph } from './BarGraph';
-import { StackedBarGraph } from './StackedBarGraph';
-import { LinePlot } from './LinePlot';
-import { ClusterBarGraph } from './ClusterBarGraph';
-import { State } from './State';
+import { AreaGraph, BarGraph, ClusterBarGraph, LinePlot, StackedBarGraph } from './index'
+// import { StackedBarGraph } from './StackedBarGraph';
 import { flatten, reduce, sampleSize, split, take } from 'lodash';
 import { functionChanged, dataChanged } from './Actions';
+import { State } from './State';
 
 interface Data {
     valid?: boolean;
@@ -41,6 +38,7 @@ class Predicate extends React.Component<any, any> {
     }
 }
 
+// TODO: Phase out State
 export class AppUI extends React.Component<State, Data> {
 
     constructor(props) {
@@ -113,24 +111,59 @@ export class AppUI extends React.Component<State, Data> {
 
     renderGraph() {
         let { sample, filterreject, data } = this.props;
-        if (this.state.valid && data) {
-            let newData = data;
-            newData = this.filterRejectData("filterreject", filterreject,
+
+        let newData = data;
+        let defaultData = [
+  {
+    id: 34919990,
+    "author": "Aaron Bockover",
+    "workhost_id": 217,
+    "workhost": "inspector-1",
+    "start": "2016-06-09T13:24:12.115107",
+    "duration": 204,
+    "duration_string": "00:03:24",
+    "lane": "inspector-mac-master",
+    "revision_id": 770807,
+    "revision": "9eb14915175a6aaf2a6084853ac8cf31960be8bf",
+    "status": "success",
+    "summary": "-"
+  },
+  {
+    id: 34914297,
+    "author": "Aaron Bockover",
+    "workhost_id": 217,
+    "workhost": "inspector-1",
+    "start": "2016-06-08T23:13:44.401852",
+    "duration": 169,
+    "duration_string": "00:02:49",
+    "lane": "inspector-mac-master",
+    "revision_id": 770672,
+    "revision": "75cdfb417e8295f4dca5218e1a823a4b788eaf39",
+    "status": "success",
+    "summary": "-"
+  },
+  {
+    id: 34912337,
+    "author": "Aaron Bockover",
+    "workhost_id": 217,
+    "workhost": "inspector-1",
+    "start": "2016-06-08T20:57:13.113063",
+    "duration": 164,
+    "duration_string": "00:02:44",
+    "lane": "inspector-mac-master",
+    "revision_id": 770619,
+    "revision": "0fb9389ca64c08b544875e2a239d465b1c4a2f2e",
+    "status": "success",
+    "summary": "-"
+  }];
+        let uris = ["https://wrench.internalx.com/Wrench/Json.aspx?type=stephistory&lane_id=904&host_id=217&command_id=5126&User=qa&Password=unicorn2"];
+        let xValues = new Function('entry', 'return entry.duration');
+        newData = this.filterRejectData("filterreject", filterreject,
                 this.sampleData("sample", sample, newData));
 
-            let s = { data: newData, height: 500, width: 5000, scaleType: this.state.scaleType};
-            console.log("updated");
-            //console.log(data);
-            //console.log(newData);
-            return (
-                <ClusterBarGraph
-                    {...Object.assign({}, this.props, s)}
-                    />
-            )
-        }
-        <h4>
-            no data or incorrectly formatted data!
-        </h4>
+        let s = { data: newData, height: 500, width: 5000, scaleType: this.state.scaleType};
+        // return <StackedBarGraph {...{data: defaultData}} />
+        return <StackedBarGraph {...{uris}} />
     }
 
     renderUI() {
