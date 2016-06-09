@@ -3,23 +3,12 @@ import * as ReactDOM from 'react-dom';
 import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
+
+import { AbstractBarGraph } from './AbstractBarGraph'
 import { Axis } from './Axis';
 import { YAxis } from './YAxis';
-import { State } from './State';
 import { CanvasDraw } from './CanvasDraw';
-import { concat, dropRight, flattenDeep, groupBy, isEmpty, isEqual,
-         last, merge, reduce, sortBy, split } from 'lodash';
-
-interface Data {
-    padding?: number;
-    groups?: any[][];
-    xScale?: any;
-    yScale?: any;
-    sortedData?: any[];
-    rectPaths?: any[][];
-    canvasPaths?: any[];
-    colorScale?: any;
-}
+import { concat, dropRight, flattenDeep, isEmpty, last, reduce } from 'lodash';
 
 class DrawGraph extends React.Component<any, any> {
     canvas: any;
@@ -64,29 +53,14 @@ class DrawGraph extends React.Component<any, any> {
     }
 }
 
-export class ClusterBarGraph extends React.Component<State, Data> {
+export class ClusterBarGraph extends AbstractBarGraph {
     constructor(props) {
         super(props);
-        let { data, xValues } = props;
-        let sortedData = sortBy(data, xValues);
-        let scales = this.calculateScales(props, sortedData);
-        let groups: any[][] = this.dataToGroups(sortedData, xValues);
-        let rectPaths = this.canvasGroupsToRects(groups, scales, props);
-        let canvasPaths = this.rectsToPaths(rectPaths);
-        this.state = merge({ groups, sortedData, canvasPaths, rectPaths }, scales);
     }
 
-    componentWillReceiveProps(nextProps) {
-        let { data, xValues, colorBy } = nextProps;
-        let sortedData = sortBy(data, xValues);
-        let scales = this.calculateScales(nextProps, sortedData);
-        let groups: any[][] = this.dataToGroups(sortedData, xValues);
-        let rectPaths = this.canvasGroupsToRects(groups, scales, nextProps);
-        let canvasPaths = this.rectsToPaths(rectPaths);
-        this.setState(merge({ groups, sortedData, canvasPaths, rectPaths }, scales));
-    }
-
-    dataToGroups(data, xValues) {
+    dataToGroups() {
+        let data = this.state.sortedData;
+        let xValues = this.props.xValues;
         return reduce(data,
             (output: any[][], cur) => {
                 // empty case
@@ -104,9 +78,9 @@ export class ClusterBarGraph extends React.Component<State, Data> {
             }, []);
     }
 
-    canvasGroupsToRects(groups: any[][], calc, props) {
-        let { xScale, yScale, padding } = calc;
-        let { xValues, yValues } = props;
+    canvasGroupsToRects(groups: any[][], scales) {
+        let { xScale, yScale } = scales;
+        let { xValues, yValues, padding } = this.props;
         let bandwidth = xScale.bandwidth();
 
         let result: any = groups.map((g, i) => g.map((d, k) => {
@@ -118,73 +92,41 @@ export class ClusterBarGraph extends React.Component<State, Data> {
         return result;
     }
 
-    rectsToPaths(groups: any[][]) {
-        function path(rect): string {
-            const V = y => ` V ${y}`;
-            const H = x => `H ${x}`;
-            const L = (x, y) => `L ${x} ${y}`;
-            const M = (x, y) => ` M ${x} ${y}`;
-            let result = [
-                M(rect.x, rect.y),
-                V(rect.h),
-                H(rect.x + rect.w),
-                L(rect.x + rect.w, rect.y)
-            ].join(' ');
-            return result;
-        }
-        let result: any = groups.map((g, i) => g.map((d, k) => {
-            return path(d);
-        }));
-        return flattenDeep(result);
-    }
-
     margin() {
         return parseInt(document.getElementById("body").style.margin);
     }
 
-    calculateScales(props, data) {
-        let { height, width, xValues, yValues, colorBy } = props;
-
-        let padding = 45;
-        let xScale = d3_scale.scaleBand()
-            .domain(data.map((d) =>  xValues(d).toString()))
-            .rangeRound([20, width])
-            .paddingInner(0.1);
-        let yScale = d3_scale.scaleLinear()
-            .domain([0, d3.max(data, yValues)])
-            .range([height, 20]);
-
-        let colorScale = d3_scale.scaleCategory20()
-                         .domain(data.map(colorBy));
-
-        return {
-            xScale, yScale, colorScale, padding
-        };
-    }
-
-    handleClick(evt) {
-        let {xScale, rectPaths, groups } = this.state;
-        let x = evt.clientX - this.margin() + window.scrollX;
-        let y = evt.clientY - window.scrollY;
-        console.log(y);
-        let sp = rectPaths[0][0].x;
-        let groupingClick = (Math.floor((x - sp) / xScale.step()));
-        if (rectPaths[groupingClick] && x <= xScale.bandwidth() + rectPaths[groupingClick][0].x) {
-            let cluster = groups[groupingClick];
-            let bar = Math.floor((x - rectPaths[groupingClick][0].x) /
-                (xScale.bandwidth() / cluster.length));
-            console.log(cluster[bar]);
+    // TODO: get y
+    handleClick(xScale, rectPaths, groups) {
+        return evt => {
+            let x = evt.clientX - this.margin() + window.scrollX;
+            let y = evt.clientY - window.scrollY;
+            console.log(y);
+            let sp = rectPaths[0][0].x;
+            let groupingClick = (Math.floor((x - sp) / xScale.step()));
+            if (rectPaths[groupingClick] && x <= xScale.bandwidth() + rectPaths[groupingClick][0].x) {
+                let cluster = groups[groupingClick];
+                let bar = Math.floor((x - rectPaths[groupingClick][0].x) /
+                    (xScale.bandwidth() / cluster.length));
+                console.log(cluster[bar]);
+            }
         }
     }
 
     render() {
-        let { xScale, yScale, groups, padding, canvasPaths, rectPaths,
-            colorScale, sortedData } = this.state;
+        let { sortedData } = this.state;
+        let scales = super.calculateScales();
+        let { xScale, yScale, colorScale } = scales;
         let { labelFunction, xValues, yValues, width,
-              height, colorBy, colorSpecific, borderColor, borderSize } = this.props;
+              height, colorBy, colorSpecific, borderColor, borderSize, padding } = this.props;
+
+        let groups: any[][] = this.dataToGroups();
+        let rectPaths = this.canvasGroupsToRects(groups, scales);
+        let canvasPaths = this.rectsToPaths(rectPaths);
+
         return (
             <div style={{ marginBottom: 45, position: "relative",
-            height: height+200, width: width}} onClick={this.handleClick.bind(this)}>
+            height: height+200, width: width}} onClick={this.handleClick(xScale, rectPaths, groups).bind(this)}>
                 <CanvasDraw width={width}
                     height={height}
                     paths={canvasPaths}
