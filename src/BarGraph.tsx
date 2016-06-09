@@ -6,19 +6,9 @@ import { Axis } from './Axis';
 import { YAxis } from './YAxis';
 import { CanvasDraw } from './CanvasDraw';
 import { State } from './State';
+import { AbstractBarGraph } from './AbstractBarGraph';
 import { concat, dropRight, flattenDeep, isEmpty, isEqual,
          last, merge, reduce, split } from 'lodash';
-
-interface Data {
-    groups?: {}[][];
-    paths?: any[];
-    padding?: number;
-    xScale?: any;
-    yScale?: any;
-    canvasPaths?: any[];
-    rectPaths?: any[];
-    colorScale?: any;
-}
 
 class DrawGraph extends React.Component<any, any> {
     canvas: any;
@@ -60,74 +50,19 @@ class DrawGraph extends React.Component<any, any> {
     }
 }
 
-export class BarGraph extends React.Component<State, Data> {
+export class BarGraph extends AbstractBarGraph {
 
     constructor(props) {
         super(props);
-        let { colorBy, data } = props;
-
-        let scales = this.calculateScales(props, data);
-        let groups = this.dataToGroups(data, colorBy);
-        let rectPaths = this.canvasGroupsToRects(groups, scales, props);
-        let canvasPaths = this.rectsToPaths(rectPaths);
-
-        this.state = merge({ groups, canvasPaths, rectPaths }, scales);
     }
 
-    componentWillReceiveProps(nextProps) {
-        let { colorBy, data } = nextProps;
-
-        let scales = this.calculateScales(nextProps, data);
-        let groups = this.dataToGroups(data, colorBy);
-        let rectPaths = this.canvasGroupsToRects(groups, scales, nextProps);
-        let canvasPaths = this.rectsToPaths(rectPaths);
-
-        this.setState(merge({ groups, canvasPaths, rectPaths }, scales));
+    margin() {
+        return parseInt(document.getElementById("body").style.margin);
     }
 
-    // calculateScales(props, data) {
-    //     let { height, width, xValues, yValues, colorBy } = props;
-
-    //     let xScale = d3_scale.scaleBand()
-    //         .domain(data.map((d, k) => {
-    //             return xValues(d).toString();
-    //         }))
-    //         .range([20, width]);
-    //     let yScale = d3_scale.scaleLinear()
-    //         .domain([0, d3.max(data, yValues)])
-    //         .range([height, 20]);
-    //     let padding = 45;
-
-    //     let colorScale = d3_scale.scaleCategory20()
-    //                      .domain(data.map(colorBy));
-
-    //     return {
-    //         xScale, yScale, colorScale, padding
-    //     };
-    // }
-    
-    calculateScales(props, data) {
-        let { height, width, xValues, yValues, colorBy } = props;
-
-        let padding = 45;
-        let xScale = d3_scale.scaleBand()
-            .domain(data.map((d) =>  xValues(d).toString()))
-            .rangeRound([20, width]);
-        let yScale = d3_scale.scaleLinear()
-            .domain([0, d3.max(data, yValues)])
-            .range([height, 20]);
-
-        let colorScale = d3_scale.scaleCategory20()
-                         .domain(data.map(colorBy));
-
-        return {
-            xScale, yScale, colorScale, padding
-        };
-    }
-
-    canvasGroupsToRects(groups: any[][], calc, props) {
-        let { xScale, yScale, padding } = calc;
-        let { xValues, yValues } = props;
+    canvasGroupsToRects(groups: any[][], scales) {
+        let { xScale, yScale } = scales;
+        let { xValues, yValues, padding } = this.props;
         let bandwidth = xScale.bandwidth();
 
         let result: any = groups.map((g, i) => {
@@ -158,41 +93,33 @@ export class BarGraph extends React.Component<State, Data> {
         return flattenDeep(result);
     }
 
-    dataToGroups(data: any[], colorBy: Function) {
-        let result = reduce(data,
-            (output: {}[][], cur) => {
-                // empty case
-                if (isEmpty(output)) return [[cur]];
-
-                // append onto pending
-                let pending = last(output);
-                let prev = last(pending);
-                let test = (f: Function, x, y) => f(x) !== f(y);
-
-                if (test(colorBy, prev, cur)) {
-                    return concat(output, [[cur]]);
-                }
-                // append after pending
-                return concat(dropRight(output), [pending.concat(cur)]);
-            }, []);
-         return flattenDeep(result);
-    }
-
-    margin() {
-        return parseInt(document.getElementById("body").style.margin);
-    }
-
-    handleClick(evt) {
-        let { canvasPaths, xScale, groups, rectPaths } = this.state;
-        let sp = rectPaths[0].x;
-        let x = evt.clientX - this.margin() + window.scrollX - sp;
-        console.log(groups[Math.floor(x / xScale.bandwidth())]);
+    // TODO: get y
+    handleClick(xScale, rectPaths, groups) {
+        return evt => {
+            let x = evt.clientX - this.margin() + window.scrollX;
+            let y = evt.clientY - window.scrollY;
+            console.log(y);
+            let sp = rectPaths[0][0].x;
+            let groupingClick = (Math.floor((x - sp) / xScale.step()));
+            if (rectPaths[groupingClick] && x <= xScale.bandwidth() + rectPaths[groupingClick][0].x) {
+                let cluster = groups[groupingClick];
+                let bar = Math.floor((x - rectPaths[groupingClick][0].x) /
+                    (xScale.bandwidth() / cluster.length));
+                console.log(cluster[bar]);
+            }
+        }
     }
 
     render() {
-        let { xScale, yScale, padding, groups, canvasPaths, colorScale } = this.state;
-        let { xValues, yValues, width, height, colorBy, colorSpecific,
-            data, labelFunction, borderColor, borderSize } = this.props;
+        let { sortedData } = this.state;
+        let { xValues, yValues, width, height, colorBy, colorSpecific, labelFunction, borderColor, borderSize, padding } = this.props;
+        let scales = super.calculateScales();
+        let { xScale, yScale, colorScale } = scales;
+
+        let groups: any[][] = super.dataToGroups();
+        let rectPaths = this.canvasGroupsToRects(groups, scales);
+        let canvasPaths = this.rectsToPaths(rectPaths);
+
         return (
             <div style={{ marginBottom: 45, position: "relative",
             height: height+200 }} onClick={this.handleClick.bind(this)}>
@@ -207,7 +134,7 @@ export class BarGraph extends React.Component<State, Data> {
                     padding={padding}
                     colorScale={colorScale}>
                 </CanvasDraw>
-                <DrawGraph width={width} height={height} data={data}
+                <DrawGraph width={width} height={height} data={sortedData}
                     xScale={xScale} yScale={yScale} xValues={xValues}
                     yValues={yValues} padding={padding}
                     labelFunction={labelFunction}>
@@ -218,7 +145,7 @@ export class BarGraph extends React.Component<State, Data> {
                     padding={padding} width={width}
                     height={height} tickLen={15}
                     colorScale={colorScale}
-                    data={data}
+                    data={sortedData}
                     colorBy={colorBy}>
                 </Axis>
                 <YAxis xScale={xScale}
