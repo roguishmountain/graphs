@@ -4,22 +4,25 @@ import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
 import * as _ from 'lodash';
+import { AbstractGraph } from './AbstractGraph';
 import { Axis } from './Axis';
 
-export class AreaGraph extends React.Component<any, any> {
+export class AreaGraph extends AbstractGraph {
 
     constructor(props) {
         super(props);
     }
 
-    renderArea() {
-        let { xFunc, yFunc, xScale, yScale, padding } = this.calculate();
+    renderArea(scales) {
+        let { xScale, yScale} = scales;
+        let { xValues, yValues, padding } = this.props;
+        let { sortedData } = this.state;
         let graph = d3_shape.area()
-            .x(i => xScale(xFunc(i)) + padding)
-            .y1(i => yScale(yFunc(i)))
+            .x(i => xScale(xValues(i)) + padding)
+            .y1(i => yScale(yValues(i)))
             .y0(this.props.height);
 
-        let path = graph(this.props.data);
+        let path = graph(sortedData);
 
         return (
             <path
@@ -31,34 +34,15 @@ export class AreaGraph extends React.Component<any, any> {
         )
     }
 
-    calculate() {
-        let { height, width, data } = this.props;
-
-        let xFunc: any = new Function("entry", "return " + this.props.xFunction);
-        let yFunc: any = new Function("entry", "return " + this.props.yFunction);
-
-        let xScale = d3_scale.scaleLinear()
-            .domain([0, d3.max(data, xFunc)])
-            .range([20, height]);
-        let yScale = d3_scale.scaleLinear()
-            .domain([0, d3.max(data, yFunc)])
-            .range([height, 20]);
-
-        let padding = xScale(0) * 4;
-
-        return {
-            xScale, yScale, xFunc, yFunc, padding
-        };
-    }
-
     render() {
 
-        let { xScale, yScale } = this.calculate();
+        let scales = super.calculateScales();
+        let { xScale, yScale } = scales;
 
         return (
             <div>
                 <svg width="1024" height="700">
-                    {this.renderArea()}
+                    {this.renderArea(scales)}
                     <Axis
                         title={"Title"}
                         xLabel={"xLabel"}
