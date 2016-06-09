@@ -5,15 +5,9 @@ import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
 import { Axis } from './Axis';
 import { YAxis } from './YAxis';
-import { State } from './State';
+import { AbstractGraph } from './AbstractGraph';
 import { merge, reject, reduce,
          sortBy, split } from 'lodash';
-
-interface Data {
-    xScale?: any;
-    yScale?: any;
-    padding?: number;
-}
 
 class DrawGraph extends React.Component<any, any> {
     canvas: any;
@@ -105,41 +99,17 @@ class DrawGraph extends React.Component<any, any> {
     }
 }
 
-export class LinePlot extends React.Component<State, Data> {
+export class LinePlot extends AbstractGraph {
 
     constructor(props) {
         super(props);
-        let { colorBy, data, filterreject, sample } = props;
-
-        let scales = this.calculate(props, data);
-        this.state = scales;
-    }
-
-    componentWillReceiveProps(nextProps) {
-        let { data } = nextProps;
-        let scales = this.calculate(nextProps, data);
-        this.setState(scales);
-    }
-
-    calculate(props, data) {
-        let { height, width, xValues, yValues } = props;
-        let xScale = d3_scale.scaleLinear()
-            .domain([d3.min(data, xValues), d3.max(data, xValues)])
-            .range([20, width - 100]);
-        let yScale = d3_scale.scaleLinear()
-            .domain([d3.min(data, yValues), d3.max(data, yValues)])
-            .range([height, 20]);
-        let padding = 45;
-
-        return {
-            xScale, yScale, padding
-        };
     }
 
     render() {
-        let { xScale, yScale, padding } = this.state;
-        let { xValues, yValues, width, height, data,
+        let { xScale, yScale } = super.calculateScales();
+        let { xValues, yValues, width, height, padding,
             colorBy, colorSpecific, scaleType, labelFunction } = this.props;
+        let data = this.state.sortedData;
 
         return (
             <div style={{ marginBottom: 45, position: "relative",
