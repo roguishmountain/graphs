@@ -4,22 +4,10 @@ import { scaleBand, scaleLinear, scaleCategory20 } from 'd3-scale';
 import { max } from 'd3';
 import { Axis } from './Axis';
 import { YAxis } from './YAxis';
-import { State } from './State';
+import { AbstractBarGraph } from './AbstractBarGraph';
 import { CanvasDraw } from './CanvasDraw';
 import { concat, dropRight, flattenDeep, groupBy, isEmpty, isEqual,
          last, merge, reduce, reverse, sortBy, split } from 'lodash';
-
-interface Data {
-    padding?: number;
-    groups?: any;
-    paths?: string;
-    xScale?: any;
-    yScale?: any;
-    canvasPaths?: any;
-    rectPaths?: any[];
-    sortedData?: any;
-    colorScale?: any;
-}
 
 class DrawGraph extends React.Component<any, any> {
     canvas: any;
@@ -62,20 +50,15 @@ class DrawGraph extends React.Component<any, any> {
     }
 }
 
-export class StackedBarGraph extends React.Component<State, Data> {
+export class StackedBarGraph extends AbstractBarGraph {
 
     constructor(props) {
         super(props);
-        let { data, xValues, yValues } = props;
-        let sortedData = sortBy(data, xValues);
-        let scales = this.calculateScales(props, sortedData);
-        let groups: any[][] = this.dataToGroups(sortedData, xValues, yValues);
-        let rectPaths = this.canvasGroupsToRects(groups, scales, props);
-        let canvasPaths = this.rectsToPaths(rectPaths);
-        this.state = merge({ sortedData, groups, canvasPaths, rectPaths }, scales);
     }
 
-    dataToGroups(data, xValues, yValues) {
+    dataToGroups() {
+        let { xValues, yValues } = this.props;
+        let data = this.state.sortedData;
         let result = reduce(data,
             (output: any[][], cur) => {
                 // empty case
@@ -98,20 +81,9 @@ export class StackedBarGraph extends React.Component<State, Data> {
             });
     }
 
-    componentWillReceiveProps(nextProps) {
-        let { data, xValues, yValues } = nextProps;
-
-        let sortedData = sortBy(data, xValues);
-        let scales = this.calculateScales(nextProps, sortedData);
-        let groups: any[][] = this.dataToGroups(sortedData, xValues,  yValues);
-        let rectPaths = this.canvasGroupsToRects(groups, scales, nextProps);
-        let canvasPaths = this.rectsToPaths(rectPaths);
-        this.state = merge({ sortedData, groups, canvasPaths, rectPaths }, scales);
-    }
-
-    canvasGroupsToRects(groups: any[][], calc, props) {
-        let { xScale, yScale, padding } = calc;
-        let { xValues, yValues } = props;
+    canvasGroupsToRects(groups: any[][], scales) {
+        let { xScale, yScale } = scales;
+        let { xValues, yValues, padding } = this.props;
         let bandwidth = xScale.bandwidth();
 
         let result: any = groups.map((g, i) => g.map((d, k) => {
@@ -124,43 +96,24 @@ export class StackedBarGraph extends React.Component<State, Data> {
         return result;
     }
 
-    rectsToPaths(groups: any[][]) {
-        function path(rect): string {
-            const V = y => ` V ${y}`;
-            const H = x => `H ${x}`;
-            const L = (x, y) => `L ${x} ${y}`;
-            const M = (x, y) => ` M ${x} ${y}`;
-            let result = [
-                M(rect.x, rect.y),
-                V(rect.h),
-                H(rect.x + rect.w),
-                L(rect.x + rect.w, rect.y)
-            ].join(' ');
-            return result;
-        }
-
-        let result: any = groups.map((g, i) => g.map((d, k) => {
-            return path(d);
-        }));
-
-        return flattenDeep(result);
-    }
-
     margin() {
         return parseInt(document.getElementById("body").style.margin);
     }
 
-    handleClick(evt) {
-        let { canvasPaths, groups, xScale } = this.state;
-        let sp = Number(canvasPaths[0].replace(/\s*[A-Z]/g, "")
-            .trim().split(/\s/)[0]);
-        let x = evt.clientX - this.margin() + window.scrollX - sp;
-        let groupingClick = Math.floor(x / xScale.bandwidth());
-        console.log(groups[Math.floor(x / xScale.bandwidth())]);
+    handleClick(canvasPaths, groups, xScale) {
+        return evt => {
+            let sp = Number(canvasPaths[0].replace(/\s*[A-Z]/g, "")
+                .trim().split(/\s/)[0]);
+            let x = evt.clientX - this.margin() + window.scrollX - sp;
+            let groupingClick = Math.floor(x / xScale.bandwidth());
+            console.log(groups[Math.floor(x / xScale.bandwidth())]);
+        }
     }
 
-    calculateScales(props, data) {
-        let { height, width, xValues, yValues, colorBy } = props;
+    calculateScales() {
+        let { height, width, xValues, yValues, colorBy } = this.props;
+        let data = this.state.sortedData;
+
         let xScale = scaleBand()
             .domain(data.map((d, k) => {
                 return xValues(d).toString();
@@ -175,17 +128,23 @@ export class StackedBarGraph extends React.Component<State, Data> {
                          .domain(data.map(colorBy));
 
         return {
-           xScale, yScale, padding, colorScale
+           xScale, yScale, colorScale
         };
     }
 
     render() {
-        let { paths, xScale, yScale, canvasPaths, groups, padding, colorScale } = this.state;
-        let { xValues, yValues, width, height, colorBy,
-              colorSpecific, data, labelFunction, borderColor, borderSize } = this.props;
+        let scales = this.calculateScales();
+        let { xScale, yScale, colorScale } = scales;
+        let data = this.state.sortedData;
+        let { xValues, yValues, width, height, colorBy, colorSpecific, padding, labelFunction, borderColor, borderSize } = this.props;
+
+        let groups: any[][] = this.dataToGroups();
+        let rectPaths = this.canvasGroupsToRects(groups, scales);
+        let canvasPaths = this.rectsToPaths(rectPaths);
+
         return (
             <div style={{ marginBottom: 45, position: "relative",
-            height: height+200}} onClick={this.handleClick.bind(this)}>
+            height: height+200}} onClick={this.handleClick(canvasPaths, groups, xScale).bind(this)}>
                 <Axis title={xValues.name + " vs. " + yValues.name}
                         xLabel={xValues.name} yLabel={yValues.name}
                         xScale={xScale} yScale={yScale}
