@@ -13,9 +13,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "JSONStream": "^1.1.1",
     "babel-core": "^6.4.0",
+    "d3-shape": "^0.7.0",
     "json-loader": "^0.5.4",
-    "jsonstream": "^1.0.3",
     "lodash": "^4.0.0",
     "parse-link-header": "^0.4.1",
     "react": "^0.14.6",
