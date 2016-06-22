@@ -5,157 +5,67 @@ import * as d3 from 'd3';
 import { Axis } from './Axis';
 import { YAxis } from './YAxis';
 import { CanvasDraw } from './CanvasDraw';
-import { State } from './State';
-import { AbstractBarGraph } from './AbstractBarGraph';
 import { concat, dropRight, flattenDeep, isEmpty, isEqual,
-         last, merge, reduce, split } from 'lodash';
+         last, merge, reduce, split, sortBy } from 'lodash';
+import { Element, Color, Data } from './Data';
+import { SubBarGraph } from './SubBarGraph';
 
-class DrawGraph extends React.Component<any, any> {
-    canvas: any;
-
-    componentDidMount() {
-        this.drawLabels(this.canvas, this.props);
-    }
-
-    componentWillReceiveProps(nextProps) {
-        let ctx = this.canvas.getContext("2d");
-        ctx.clearRect(0, 0, this.props.width, this.props.height);
-        this.drawLabels(this.canvas, nextProps);
-    }
-
-    drawLabels(canvas, props) {
-        if (!canvas.getContext) return;
-
-        let { data, xValues, yValues, xScale,
-            yScale, padding, labelFunction } = props;
-        let ctx = canvas.getContext("2d");
-        ctx.lineWidth = 1;
-        ctx.fillStyle = "black";
-
-        data.forEach((element) => {
-            ctx.fillText(labelFunction(element) || "",
-                        xScale(xValues(element)) + padding,
-                        yScale(yValues(element)));
-        });
-    }
-
-    render() {
-        let ref = (c) => this.canvas = c;
-        let width = this.props.width;
-        let height = this.props.height;
-        let style = {position: "absolute"};
-
-        return React.createElement
-            ('canvas', { ref, width, height, style });
-    }
+export interface BarGraphProps {
+    data: Data;
+    x: (element: Element) => any;
+    ys: ((element: Element) => number)[];
+    clusterBy?: ((data: Data) => any)[];
+    colors?: Color[];
+    ordered?: boolean;
+    height?: number;
+    width?: number;
 }
 
-export class BarGraph extends AbstractBarGraph {
+export interface BarGraphState {
+}
+
+export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
+    static defaultColor = '#ffffff';
+
+    static defaultProps: BarGraphProps = {
+        data: [],
+        x: undefined,
+        ys: [],
+        clusterBy: [],
+        colors: [BarGraph.defaultColor],
+        ordered: false,
+        height: 400,
+        width: 1000
+    }
 
     constructor(props) {
         super(props);
+        this.state = {};
     }
 
-    margin() {
-        return parseInt(document.getElementById("body").style.margin);
-    }
+    makeScale(): d3.scale.Linear<number, number> {
+        // get the maximum y value by summing up all the numbers returned by each stack function
+        let maxY = d3.max(this.props.data, 
+            (d: Element) => reduce(this.props.ys, (res, y) => res + y(d) , 0));
 
-    canvasGroupsToRects(groups: any[][], scales) {
-        let { xScale, yScale } = scales;
-        let { xValues, yValues, padding } = this.props;
-        let bandwidth = xScale.bandwidth();
-
-        let result: any = groups.map((g, i) => {
-            return { "x": xScale(xValues(g)) + padding,
-                "y": yScale(0),
-                "w": bandwidth,
-                "h": yScale(yValues(g))
-            };
-        });
-        return result;
-    }
-
-    rectsToPaths(groups: any[][]) {
-        function path(rect): string {
-            const V = y => ` V ${y}`;
-            const H = x => `H ${x}`;
-            const L = (x, y) => `L ${x} ${y}`;
-            const M = (x, y) => ` M ${x} ${y}`;
-            let result = [
-                M(rect.x, rect.y),
-                V(rect.h),
-                H(rect.x + rect.w),
-                L(rect.x + rect.w, rect.y)
-            ].join(' ');
-            return result;
-        }
-        let result: any = groups.map(path);
-        return flattenDeep(result);
-    }
-
-    // TODO: get y
-    handleClick(xScale, rectPaths, groups) {
-        return evt => {
-            let x = evt.clientX - this.margin() + window.scrollX;
-            let y = evt.clientY - window.scrollY;
-            console.log(y);
-            let sp = rectPaths[0][0].x;
-            let groupingClick = (Math.floor((x - sp) / xScale.step()));
-            if (rectPaths[groupingClick] && x <= xScale.bandwidth() + rectPaths[groupingClick][0].x) {
-                let cluster = groups[groupingClick];
-                let bar = Math.floor((x - rectPaths[groupingClick][0].x) /
-                    (xScale.bandwidth() / cluster.length));
-                console.log(cluster[bar]);
-            }
-        }
+        return d3.scale.linear().domain([0, maxY]).rangeRound([0, this.props.height]);
     }
 
     render() {
-        let { sortedData } = this.state;
-        let { xValues, yValues, width, height, colorBy, colorSpecific, labelFunction, borderColor, borderSize, padding } = this.props;
-        let scales = super.calculateScales();
-        let { xScale, yScale, colorScale } = scales;
+        // do some input checking!
+        let numColors = this.props.colors.length;
+        let numStacks = this.props.ys.length;
+        if (numColors < numStacks) {
+            throw new Error(`There should be at least as many colors as stacks. There are ${numColors} colors and ${numStacks} stacks.`)
+        }
 
-        let groups: any[][] = super.dataToGroups();
-        let rectPaths = this.canvasGroupsToRects(groups, scales);
-        let canvasPaths = this.rectsToPaths(rectPaths);
+        // generate everything shared by all subgraphs
+        let sortedData = this.props.ordered ? 
+            this.props.data : 
+            sortBy(this.props.data, this.props.x);
+        let yScale = this.makeScale();
 
-        return (
-            <div style={{ marginBottom: 45, position: "relative",
-            height: height+200 }} onClick={this.handleClick.bind(this)}>
-                <CanvasDraw width={width + 100}
-                    height={height}
-                    paths={canvasPaths}
-                    colorBy={colorBy}
-                    colorSpecific={colorSpecific}
-                    dataOrder={flattenDeep(groups)}
-                    borderColor={borderColor}
-                    borderSize={borderSize}
-                    padding={padding}
-                    colorScale={colorScale}>
-                </CanvasDraw>
-                <DrawGraph width={width} height={height} data={sortedData}
-                    xScale={xScale} yScale={yScale} xValues={xValues}
-                    yValues={yValues} padding={padding}
-                    labelFunction={labelFunction}>
-                </DrawGraph>
-                <Axis title={xValues.name + " vs. " + yValues.name}
-                    xLabel={xValues.name} yLabel={yValues.name}
-                    xScale={xScale} yScale={yScale}
-                    padding={padding} width={width}
-                    height={height} tickLen={15}
-                    colorScale={colorScale}
-                    data={sortedData}
-                    colorBy={colorBy}>
-                </Axis>
-                <YAxis xScale={xScale}
-                    yScale={yScale}
-                    padding={padding}
-                    width={width}
-                    height={height}
-                    tickLen={15}>
-                </YAxis>
-            </div>
-        )
+        let props = merge({}, this.props, { data: sortedData, yScale });
+        return <SubBarGraph {...props} />;
     }
 }

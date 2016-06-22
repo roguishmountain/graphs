@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { Observable } from 'rx';
 import { retrieve } from './retrieve';
-import { AreaGraph, BarGraph, ClusterBarGraph, LinePlot, StackedBarGraph } from './index'
+import { BarGraph } from './BarGraph'
 // import { StackedBarGraph } from './StackedBarGraph';
 import { flatten, reduce, sampleSize, split, take } from 'lodash';
 import { functionChanged, dataChanged } from './Actions';
@@ -163,7 +163,7 @@ export class AppUI extends React.Component<State, Data> {
 
         let s = { data: newData, height: 500, width: 5000, scaleType: this.state.scaleType};
         // return <StackedBarGraph {...{data: defaultData}} />
-        return <StackedBarGraph {...{uris}} />
+        return <BarGraph {...{uris}} />
     }
 
     renderUI() {
