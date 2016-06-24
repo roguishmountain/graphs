@@ -1,18 +1,69 @@
 import 'babel-polyfill';
 import { render } from 'react-dom';
-import { createElement } from 'react';
-import { Action, Actions } from './Actions';
-import { InitialState, State } from './State';
-import { AppUI } from './AppUI';
+import BarGraph from './BarGraph';
+import * as React from 'react';
+import { Data, Element } from './Data';
 
 const content = document.getElementById('content');
-async function view(state) {
-    render(createElement(AppUI, state), content);
+const data: Data = [
+  {
+    "id": 35218980,
+    "author": "Aaron Bockover",
+    "workhost_id": 217,
+    "workhost": "inspector-1",
+    "start": "2016-06-22T21:54:56.705285Z",
+    "duration": 124,
+    "duration_string": "00:02:04",
+    "lane": "inspector-mac-master",
+    "revision_id": 776737,
+    "revision": "10a22fbe8c5aea907f32e2e7df29b5112a208dfa",
+    "status": "success",
+    "summary": "-"
+  },
+  {
+    "id": 35217253,
+    "author": "Aaron Bockover",
+    "workhost_id": 217,
+    "workhost": "inspector-1",
+    "start": "2016-06-22T15:11:41.571769Z",
+    "duration": 125,
+    "duration_string": "00:02:05",
+    "lane": "inspector-mac-master",
+    "revision_id": 776668,
+    "revision": "a49da5d77cc9182a83bfd584a22ba95906201630",
+    "status": "success",
+    "summary": "-"
+  },
+  {
+    "id": 35190524,
+    "author": "Aaron",
+    "workhost_id": 217,
+    "workhost": "inspector-1",
+    "start": "2016-06-20T21:30:26.56735Z",
+    "duration": 2,
+    "duration_string": "00:00:02",
+    "lane": "inspector-mac-master",
+    "revision_id": 775252,
+    "revision": "e61603c06c5026a8cf149ef1ce6bb604e25768ed",
+    "status": "failure",
+    "summary": "-"
+  }
+];
+
+function x(ele: Element) {
+    return ele.revision;
+}
+
+const ys = [
+    (ele: Element) => ele.duration,
+    (ele: Element) => ele.duration
+];
+
+function author(ele: Element) {
+    return ele.author;
 }
 function run() {
-    Actions
-        .startWith(InitialState)
-        .scan((s: State, action: Action) => action(s))
-        .subscribe(view);
+    render(<BarGraph data={data} clusterBy={[author]} x={x} ys={ys} />, content);
 }
+
 window.onload = run;

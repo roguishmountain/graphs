@@ -2,11 +2,7 @@ import * as React from 'react';
 import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
-import { Axis } from './Axis';
-import { YAxis } from './YAxis';
-import { CanvasDraw } from './CanvasDraw';
-import { concat, dropRight, flattenDeep, isEmpty, isEqual,
-         last, merge, reduce, split, sortBy } from 'lodash';
+import { assign, reduce, sortBy, take } from 'lodash';
 import { Element, Color, Data } from './Data';
 import { SubBarGraph } from './SubBarGraph';
 
@@ -15,6 +11,7 @@ export interface BarGraphProps {
     x: (element: Element) => any;
     ys: ((element: Element) => number)[];
     clusterBy?: ((data: Data) => any)[];
+    title?: string;
     colors?: Color[];
     ordered?: boolean;
     height?: number;
@@ -22,17 +19,32 @@ export interface BarGraphProps {
 }
 
 export interface BarGraphState {
+    canvasRef: HTMLCanvasElement;
+    canvasObj: any;
 }
 
-export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
-    static defaultColor = '#ffffff';
+export default class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
+    // Stylings for the canvas
+    static AXES_PADDING = 30;
+    static TITLE_PADDING = 30;
+    static CLUSTER_PADDING = 100;
+    static FRAME_PADDING = 30;
 
+    bottom() {
+        return this.props.height - BarGraph.AXES_PADDING;
+    }
+
+    right() {
+        return this.props.width - BarGraph.AXES_PADDING;
+    }
+
+    // Defaults for Component Creation
     static defaultProps: BarGraphProps = {
         data: [],
         x: undefined,
         ys: [],
         clusterBy: [],
-        colors: [BarGraph.defaultColor],
+        colors: d3_scale.schemeCategory20b,
         ordered: false,
         height: 400,
         width: 1000
@@ -40,15 +52,42 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
 
     constructor(props) {
         super(props);
-        this.state = {};
+        let ref = (canvasRef) => this.setState({canvasRef, canvasObj: this.state.canvasObj});
+        let width = this.props.width;
+        let height = this.props.height;
+        let style = {position: 'absolute'};
+        this.state = {
+            canvasRef: undefined,
+            canvasObj: <canvas {...{ref, width, height, style}} />
+        };
     }
 
-    makeScale(): d3.scale.Linear<number, number> {
+    makeYScale(): d3.scale.Linear<number, number> {
         // get the maximum y value by summing up all the numbers returned by each stack function
         let maxY = d3.max(this.props.data, 
             (d: Element) => reduce(this.props.ys, (res, y) => res + y(d) , 0));
 
-        return d3.scale.linear().domain([0, maxY]).rangeRound([0, this.props.height]);
+        return d3.scale.linear()
+            .domain([0, maxY])
+            .range([0, this.bottom() - BarGraph.TITLE_PADDING])
+    }
+
+    drawAxes() {
+        if (!this.state.canvasRef) return;
+
+        let context2D = this.state.canvasRef.getContext("2d");
+        context2D.strokeStyle = '#000';
+        let bottom = this.props.height - BarGraph.AXES_PADDING;
+        let right = this.props.width - BarGraph.AXES_PADDING;
+
+        context2D.beginPath();
+        context2D.moveTo(BarGraph.AXES_PADDING, 0);
+        context2D.lineTo(BarGraph.AXES_PADDING, bottom);
+        context2D.moveTo(BarGraph.AXES_PADDING - 1, bottom);
+        context2D.lineTo(right, bottom);
+        context2D.closePath();
+
+        context2D.stroke();
     }
 
     render() {
@@ -59,13 +98,31 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
             throw new Error(`There should be at least as many colors as stacks. There are ${numColors} colors and ${numStacks} stacks.`)
         }
 
-        // generate everything shared by all subgraphs
+        let colors = take(this.props.colors, numStacks);
+
+        // Draw everything in the background
+        this.drawAxes();
+
+        // generate everything shared by all subgraphs -- data should only need to be sorted once
         let sortedData = this.props.ordered ? 
             this.props.data : 
             sortBy(this.props.data, this.props.x);
-        let yScale = this.makeScale();
 
-        let props = merge({}, this.props, { data: sortedData, yScale });
-        return <SubBarGraph {...props} />;
+        let yScale = this.makeYScale();
+
+        let topMargin = parseInt(window.getComputedStyle(document.body).marginTop);
+        let leftMargin = parseInt(window.getComputedStyle(document.body).marginLeft);
+
+        let top = BarGraph.TITLE_PADDING + topMargin;
+        let left = BarGraph.AXES_PADDING + leftMargin + BarGraph.FRAME_PADDING;
+        let height = this.bottom() - BarGraph.TITLE_PADDING - 1;
+        let width = this.right() - BarGraph.AXES_PADDING - (2 * BarGraph.FRAME_PADDING);
+
+        let props = assign({}, this.props, {data: sortedData, colors,
+                                            yScale, top, left, width, height, clusterPadding: BarGraph.CLUSTER_PADDING}) as any;
+        return  <div>
+                    {this.state.canvasObj}
+                    <SubBarGraph {...props}/>
+                </div>;
     }
 }
