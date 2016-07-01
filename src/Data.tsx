@@ -1,3 +1,6 @@
 export type Element = any;
 export type Data = Element[];
-export type Color = any;
+export interface Cluster {
+    data: Data | Cluster[];
+};
+export type Color = string | ((ele: Element) => string);

@@ -50,20 +50,33 @@ const data: Data = [
   }
 ];
 
-function x(ele: Element) {
+function commit(ele: Element) {
     return ele.revision;
 }
 
+function duration(ele: Element) {
+    return ele.duration;
+}
+
 const ys = [
-    (ele: Element) => ele.duration,
-    (ele: Element) => ele.duration
+    duration,
+    duration
 ];
 
 function author(ele: Element) {
     return ele.author;
 }
+
+function status(ele: Element) {
+    return ele.status
+}
+
+function id(ele: Element) {
+    return ele.id;
+}
+
 function run() {
-    render(<BarGraph data={data} clusterBy={[author]} x={x} ys={ys} />, content);
+    render(<BarGraph clusterBy={[author, id]} data={data} x={commit} ys={ys} />, content);
 }
 
 window.onload = run;
