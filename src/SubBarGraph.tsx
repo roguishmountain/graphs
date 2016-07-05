@@ -30,11 +30,15 @@ export class SubBarGraph extends React.Component<SubBarGraphProps, SubBarGraphSt
         clusterBy: []
     }
 
-    componentWillReceiveProps() {
-        if (!this.state.canvasRef) return;
+    componentWillReceiveProps(nextProps) {
+        let ref = (canvasRef) => this.setState({canvasRef, canvasObj: this.state.canvasObj});
+        let { top, left, height, width } = nextProps;
+        let style = {position: 'absolute', top, left};
 
-        let context2D = this.state.canvasRef.getContext('2d');
-        context2D.clearRect(0,0,this.props.width,this.props.height);
+        this.setState({
+            canvasRef: undefined,
+            canvasObj: <canvas {...{onClick: this.logClickedElement.bind(this), ref, width, height, style}} />
+        });
     }
 
     constructor(props) {

@@ -23,7 +23,7 @@ export interface BarGraphState {
     canvasObj: any;
 }
 
-export default class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
+export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
     // Stylings for the canvas
     static AXES_PADDING = 30;
     static TITLE_PADDING = 30;
@@ -31,11 +31,14 @@ export default class BarGraph extends React.Component<BarGraphProps, BarGraphSta
     static FRAME_PADDING = 10;
     static BAR_PADDING = 5;
 
-    componentWillReceiveProps() {
-        if (!this.state.canvasRef) return;
-
-        let context2D = this.state.canvasRef.getContext('2d');
-        context2D.clearRect(0, 0, this.props.width, this.props.height);
+    componentWillReceiveProps(nextProps) {
+        let ref = (canvasRef) => this.setState({canvasRef, canvasObj: this.state.canvasObj});
+        let { width, height } = nextProps;
+        let style = {position: 'absolute'};
+        this.setState({
+            canvasRef: undefined,
+            canvasObj: <canvas {...{ref, width, height, style}} />
+        });
     }
 
     bottom() {

@@ -1,6 +1,6 @@
 import 'babel-polyfill';
 import { render } from 'react-dom';
-import BarGraph from './BarGraph';
+import { BarGraph } from './BarGraph';
 import * as React from 'react';
 import { Data, Element } from './Data';
 
