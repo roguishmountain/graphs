@@ -29,7 +29,14 @@ export default class BarGraph extends React.Component<BarGraphProps, BarGraphSta
     static TITLE_PADDING = 30;
     static CLUSTER_PADDING = 50;
     static FRAME_PADDING = 10;
-    static BAR_PADDING = 10;
+    static BAR_PADDING = 5;
+
+    componentWillReceiveProps() {
+        if (!this.state.canvasRef) return;
+
+        let context2D = this.state.canvasRef.getContext('2d');
+        context2D.clearRect(0, 0, this.props.width, this.props.height);
+    }
 
     bottom() {
         return this.props.height - BarGraph.AXES_PADDING;

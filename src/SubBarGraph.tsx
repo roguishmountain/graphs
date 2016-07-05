@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { reduce, first, map, range, zip, isFunction } from 'lodash';
+import { reduce, first, forEach, range, zip, isFunction, drop, head, keys, last } from 'lodash';
 import { Data, Color, Element, Cluster } from './Data';
 
 export interface SubBarGraphProps {
@@ -23,6 +23,8 @@ export interface SubBarGraphState {
 }
 
 export class SubBarGraph extends React.Component<SubBarGraphProps, SubBarGraphState> {
+    stackStarts = {};
+
     static defaultProps = {
         barPadding: 10,
         clusterBy: []
@@ -42,7 +44,7 @@ export class SubBarGraph extends React.Component<SubBarGraphProps, SubBarGraphSt
         let style = {position: 'absolute', top, left};
         this.state = {
             canvasRef: undefined,
-            canvasObj: <canvas {...{ref, width, height, style}} />
+            canvasObj: <canvas {...{onClick: this.logClickedElement.bind(this), ref, width, height, style}} />
         };
     }
 
@@ -79,12 +81,35 @@ export class SubBarGraph extends React.Component<SubBarGraphProps, SubBarGraphSt
         } else if (first(cluster.data).data === undefined) {
             let barWidth = this.props.stackWidth + this.props.barPadding;
             let drawnBarsOffset = cluster.data.length * barWidth;
-            map(zip(cluster.data, range(xOffset, xOffset + drawnBarsOffset, barWidth)), this.drawStack.bind(this));
+            forEach(zip(cluster.data, range(xOffset, xOffset + drawnBarsOffset, barWidth)), stackInfo => {
+                this.stackStarts[stackInfo[1]] = stackInfo[0];
+                this.drawStack(stackInfo);
+            });
 
             return xOffset + drawnBarsOffset + clusterPadding;
         } else {
             return reduce(cluster.data, (acc, c) => this.drawCluster(c, acc, clusterPadding / 2) + clusterPadding, xOffset);
         }
+    }
+
+    findElement(xValue: number): Element {
+        return reduce(keys(this.stackStarts), (result, key) => {
+            if (result) return result;
+            else {
+                let offset = parseInt(key);
+                if (offset < xValue && xValue < offset + this.props.stackWidth)
+                    return this.stackStarts[key];
+                else
+                    return undefined;
+            }
+        }, undefined);
+    }
+
+    logClickedElement(evt) {
+        let xValue = evt.clientX + window.pageXOffset - (parseInt(window.getComputedStyle(document.body).marginLeft) + this.props.left);
+
+        let element = this.findElement(xValue);
+        if (element) console.log(element);
     }
 
     render() {
