@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
-import { assign, reduce, sortBy, take, first, last, concat, dropRight, drop, map } from 'lodash';
+import { assign, reduce, sortBy, take, first, last, concat, dropRight, drop, map, } from 'lodash';
 import { Element, Color, Data, Cluster } from './Data';
 import { SubBarGraph } from './SubBarGraph';
 
@@ -19,6 +19,9 @@ export interface BarGraphProps {
 }
 
 export interface BarGraphState {
+    clusters: Cluster;
+    stackWidth: number;
+    width: number;
     canvasRef: HTMLCanvasElement;
     canvasObj: any;
 }
@@ -30,15 +33,76 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
     static CLUSTER_PADDING = 50;
     static FRAME_PADDING = 10;
     static BAR_PADDING = 5;
+    static MIN_BAR_WIDTH = 5;
 
-    componentWillReceiveProps(nextProps) {
-        let ref = (canvasRef) => this.setState({canvasRef, canvasObj: this.state.canvasObj});
-        let { width, height } = nextProps;
+    // Defaults for Component Creation
+    static defaultProps: BarGraphProps = {
+        data: [],
+        x: undefined,
+        ys: [],
+        clusterBy: [],
+        colors: d3_scale.schemeCategory20b,
+        ordered: false,
+        height: 400,
+        width: 1000
+    }
+
+    constructor(props) {
+        super(props);
+
+        // Organize all the data, to make sure our canvas is big enough
+        let sortedData = this.props.ordered ?
+            this.props.data :
+            sortBy(this.props.data, this.props.x);
+
+        let clusters = this.cluster(sortedData, this.props.clusterBy);
+
+        let {stackSpace, negSpace} = this.getUsedSpace(clusters, this.props.width);
+
+        let stackWidth = stackSpace / this.props.data.length;
+
+        let ref = (canvasRef) => this.setState(assign({}, this.state, {canvasRef, canvasObj: this.state.canvasObj}) as any);
+        let { width, height } = this.props;
+        if (stackWidth < BarGraph.MIN_BAR_WIDTH) {
+            width = (this.props.data.length * BarGraph.MIN_BAR_WIDTH) + negSpace;
+            stackWidth = BarGraph.MIN_BAR_WIDTH;
+        }
         let style = {position: 'absolute'};
-        this.setState({
+        this.state = {
+            clusters,
+            stackWidth,
+            width,
             canvasRef: undefined,
             canvasObj: <canvas {...{ref, width, height, style}} />
-        });
+        };
+    }
+
+    componentWillReceiveProps(nextProps) {
+        // Organize all the data, to make sure our canvas is big enough
+        let sortedData = this.props.ordered ?
+            this.props.data :
+            sortBy(this.props.data, this.props.x);
+
+        let clusters = this.cluster(sortedData, this.props.clusterBy);
+
+        let {stackSpace, negSpace} = this.getUsedSpace(clusters, this.props.width);
+
+        let stackWidth = stackSpace / this.props.data.length;
+
+        let ref = (canvasRef) => this.setState(assign({}, this.state, {canvasRef, canvasObj: this.state.canvasObj}) as any);
+        let { width, height } = this.props;
+        if (stackWidth < BarGraph.MIN_BAR_WIDTH) {
+            width = (this.props.data.length * BarGraph.MIN_BAR_WIDTH) + negSpace;
+            stackWidth = BarGraph.MIN_BAR_WIDTH;
+        }
+        let style = {position: 'absolute'};
+        this.state = {
+            clusters,
+            stackWidth,
+            width,
+            canvasRef: undefined,
+            canvasObj: <canvas {...{ref, width, height, style}} />
+        };
     }
 
     bottom() {
@@ -46,7 +110,7 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
     }
 
     right() {
-        return this.props.width - BarGraph.AXES_PADDING;
+        return this.state.width - BarGraph.AXES_PADDING;
     }
 
     cluster(data: Data, clusterFuncs: ((data: Data) => any)[]): Cluster {
@@ -75,46 +139,27 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
         }
     }
 
-    decreaseStackWidth(cluster: Cluster, width: number, clusterPadding: number): number {
+    accumulateUsedSpace(cluster: Cluster, width: number, clusterPadding: number, paddingAcc: number): {stackSpace: number, negSpace: number} {
         if (cluster.data === []) {
-            return width;
+            return {stackSpace: width, negSpace: paddingAcc};
         } else if (first(cluster.data).data === undefined) {
             // No type inspection :( This should be a Data, not a Cluster[]
-            return width - (cluster.data.length * BarGraph.BAR_PADDING);
+            let paddingSpace = (cluster.data.length * BarGraph.BAR_PADDING);
+            return {stackSpace: width - paddingSpace, negSpace: paddingAcc + paddingSpace};
         } else {
             let padding = cluster.data.length * clusterPadding;
-            return reduce(cluster.data, (acc, c) => this.decreaseStackWidth(c, acc, clusterPadding / 2), width - padding);
+            return reduce(cluster.data, (acc, c) => {
+                let {stackSpace, negSpace} = acc;
+                return this.accumulateUsedSpace(c, stackSpace, clusterPadding / 2, negSpace + padding);
+            }, {stackSpace: width, negSpace: paddingAcc});
         }
     }
 
     // get the number of stacks at each level of the cluster
-    getStackWidth(cluster: Cluster, width: number): number {
+    getUsedSpace(cluster: Cluster, width: number): {stackSpace: number, negSpace: number} {
         let drawingWidth = width - BarGraph.AXES_PADDING - (2*BarGraph.FRAME_PADDING);
 
-        return this.decreaseStackWidth(cluster, drawingWidth, BarGraph.CLUSTER_PADDING);
-    }
-
-    // Defaults for Component Creation
-    static defaultProps: BarGraphProps = {
-        data: [],
-        x: undefined,
-        ys: [],
-        clusterBy: [],
-        colors: d3_scale.schemeCategory20b,
-        ordered: false,
-        height: 400,
-        width: 1000
-    }
-
-    constructor(props) {
-        super(props);
-        let ref = (canvasRef) => this.setState({canvasRef, canvasObj: this.state.canvasObj});
-        let { width, height } = this.props;
-        let style = {position: 'absolute'};
-        this.state = {
-            canvasRef: undefined,
-            canvasObj: <canvas {...{ref, width, height, style}} />
-        };
+        return this.accumulateUsedSpace(cluster, drawingWidth, BarGraph.CLUSTER_PADDING, 0);
     }
 
     makeYScale(): d3.scale.Linear<number, number> {
@@ -132,14 +177,12 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
 
         let context2D = this.state.canvasRef.getContext("2d");
         context2D.strokeStyle = '#000';
-        let bottom = this.props.height - BarGraph.AXES_PADDING;
-        let right = this.props.width - BarGraph.AXES_PADDING;
 
         context2D.beginPath();
         context2D.moveTo(BarGraph.AXES_PADDING, 0);
-        context2D.lineTo(BarGraph.AXES_PADDING, bottom);
-        context2D.moveTo(BarGraph.AXES_PADDING - 1, bottom);
-        context2D.lineTo(right, bottom);
+        context2D.lineTo(BarGraph.AXES_PADDING, this.bottom());
+        context2D.moveTo(BarGraph.AXES_PADDING - 1, this.bottom());
+        context2D.lineTo(this.right(), this.bottom());
         context2D.closePath();
 
         context2D.stroke();
@@ -156,16 +199,6 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
 
         let colors = take(this.props.colors, numLevels);
 
-        // generate everything shared by all subgraphs -- data should only need to be sorted once
-        let sortedData = this.props.ordered ? 
-            this.props.data : 
-            sortBy(this.props.data, this.props.x);
-
-        let cluster = this.cluster(sortedData, this.props.clusterBy);
-        let stackWidth = this.getStackWidth(cluster, this.props.width) / this.props.data.length;
-
-        console.log(stackWidth);
-
         let yScale = this.makeYScale();
 
         // Draw everything in the background
@@ -179,7 +212,7 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
         let height = this.bottom() - BarGraph.TITLE_PADDING - 1;
         let width = this.right() - BarGraph.AXES_PADDING - (2 * BarGraph.FRAME_PADDING);
 
-        let props = assign({}, this.props, {cluster, colors, yScale, top, left, stackWidth,
+        let props = assign({}, this.props, { cluster: this.state.clusters, colors, yScale, top, left, stackWidth: this.state.stackWidth,
                                             width, height, clusterPadding: BarGraph.CLUSTER_PADDING}) as any;
         return  <div height={this.props.height} width={this.props.width} style={{position: 'relative'}}>
                     {this.state.canvasObj}
