@@ -14,6 +14,7 @@ export interface SubBarGraphProps {
     width: number;
     clusterPadding: number;
     barPadding?: number;
+    clickHandler?: (evt: any) => void;
     stackWidth: number;
 }
 
@@ -31,13 +32,19 @@ export class SubBarGraph extends React.Component<SubBarGraphProps, SubBarGraphSt
     }
 
     componentWillReceiveProps(nextProps) {
+        if (this.state.canvasRef) {
+            let context2D = this.state.canvasRef.getContext('2d');
+            context2D.clearRect(0,0,this.props.width, this.props.height);
+        }
+
         let ref = (canvasRef) => this.setState({canvasRef, canvasObj: this.state.canvasObj});
         let { top, left, height, width } = nextProps;
         let style = {position: 'absolute', top, left};
+        let onClick = this.props.clickHandler ? this.props.clickHandler.bind(this) : this.logClickedElement.bind(this);
 
         this.setState({
             canvasRef: undefined,
-            canvasObj: <canvas {...{onClick: this.logClickedElement.bind(this), ref, width, height, style}} />
+            canvasObj: <canvas {...{onClick, ref, width, height, style}} />
         });
     }
 
@@ -46,9 +53,10 @@ export class SubBarGraph extends React.Component<SubBarGraphProps, SubBarGraphSt
         let ref = (canvasRef) => this.setState({canvasRef, canvasObj: this.state.canvasObj});
         let { top, left, height, width } = props;
         let style = {position: 'absolute', top, left};
+        let onClick = this.props.clickHandler ? this.props.clickHandler.bind(this) : this.logClickedElement.bind(this);
         this.state = {
             canvasRef: undefined,
-            canvasObj: <canvas {...{onClick: this.logClickedElement.bind(this), ref, width, height, style}} />
+            canvasObj: <canvas {...{onClick, ref, width, height, style}} />
         };
     }
 

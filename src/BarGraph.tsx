@@ -16,6 +16,7 @@ export interface BarGraphProps {
     ordered?: boolean;
     height?: number;
     width?: number;
+    clickHandler?: (evt: any) => void;
 }
 
 export interface BarGraphState {
@@ -81,6 +82,11 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
 
     componentWillReceiveProps(nextProps) {
         // Organize all the data, to make sure our canvas is big enough
+        if (this.state.canvasRef) {
+            let context2D = this.state.canvasRef.getContext('2d');
+            context2D.clearRect(0,0,this.props.width, this.props.height);
+        }
+
         let sortedData = this.props.ordered ?
             this.props.data :
             sortBy(this.props.data, this.props.x);
@@ -263,8 +269,10 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
         let height = this.bottom() - BarGraph.TITLE_PADDING - 1;
         let width = this.drawableWidth();
 
-        let props = assign({}, this.props, { cluster: this.state.clusters, colors, yScale, top, left, stackWidth: this.state.stackWidth,
-                                            width, height, clusterPadding: BarGraph.CLUSTER_PADDING}) as any;
+        let props = assign({}, this.props, {
+            cluster: this.state.clusters, colors, yScale, top, left, clickHandler: this.props.clickHandler,
+            stackWidth: this.state.stackWidth, width, height, clusterPadding: BarGraph.CLUSTER_PADDING
+        }) as any;
         return  <div height={this.props.height} width={this.props.width} style={{position: 'relative'}}>
                     {this.state.canvasObj}
                     <SubBarGraph {...props}/>
