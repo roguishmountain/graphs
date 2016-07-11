@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as d3_scale from 'd3-scale';
 import * as d3_shape from 'd3-shape';
 import * as d3 from 'd3';
-import { assign, reduce, sortBy, take, first, last, concat, dropRight, drop, map, } from 'lodash';
+import { assign, reduce, sortBy, take, first, last, concat, dropRight, drop, map, floor} from 'lodash';
 import { Element, Color, Data, Cluster } from './Data';
 import { SubBarGraph } from './SubBarGraph';
 
@@ -34,6 +34,7 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
     static FRAME_PADDING = 10;
     static BAR_PADDING = 5;
     static MIN_BAR_WIDTH = 5;
+    static TICK_LENGTH = 5;
 
     // Defaults for Component Creation
     static defaultProps: BarGraphProps = {
@@ -57,7 +58,8 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
 
         let clusters = this.cluster(sortedData, this.props.clusterBy);
 
-        let {stackSpace, negSpace} = this.getUsedSpace(clusters, this.props.width);
+        let drawableWidth = (this.props.width - BarGraph.AXES_PADDING) - BarGraph.AXES_PADDING - (2 * BarGraph.FRAME_PADDING);
+        let {stackSpace, negSpace} = this.getUsedSpace(clusters, drawableWidth);
 
         let stackWidth = stackSpace / this.props.data.length;
 
@@ -84,8 +86,9 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
             sortBy(this.props.data, this.props.x);
 
         let clusters = this.cluster(sortedData, this.props.clusterBy);
+        let drawableWidth = (this.props.width - BarGraph.AXES_PADDING) - BarGraph.AXES_PADDING - (2 * BarGraph.FRAME_PADDING);
 
-        let {stackSpace, negSpace} = this.getUsedSpace(clusters, this.props.width);
+        let {stackSpace, negSpace} = this.getUsedSpace(clusters, drawableWidth);
 
         let stackWidth = stackSpace / this.props.data.length;
 
@@ -111,6 +114,10 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
 
     right() {
         return this.state.width - BarGraph.AXES_PADDING;
+    }
+
+    drawableWidth() {
+        return this.right() - BarGraph.AXES_PADDING - (2 * BarGraph.FRAME_PADDING);
     }
 
     cluster(data: Data, clusterFuncs: ((data: Data) => any)[]): Cluster {
@@ -162,30 +169,56 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
         return this.accumulateUsedSpace(cluster, drawingWidth, BarGraph.CLUSTER_PADDING, 0);
     }
 
-    makeYScale(): d3.scale.Linear<number, number> {
+    makeYScale(): {yScale: d3.scale.Linear<number, number>, maxY: number} {
         // get the maximum y value by summing up all the numbers returned by each stack function
         let maxY = d3.max(this.props.data, 
             (d: Element) => reduce(this.props.ys, (res, y) => res + y(d) , 0));
 
-        return d3.scale.linear()
+        let yScale = d3.scale.linear()
             .domain([0, maxY])
-            .range([0, this.bottom() - BarGraph.TITLE_PADDING])
+            .range([0, this.bottom() - BarGraph.TITLE_PADDING]);
+
+        return {yScale, maxY};
     }
 
-    drawAxes() {
+    drawAxes(maxY: number) {
         if (!this.state.canvasRef) return;
 
         let context2D = this.state.canvasRef.getContext("2d");
         context2D.strokeStyle = '#000';
 
         context2D.beginPath();
-        context2D.moveTo(BarGraph.AXES_PADDING, 0);
+        context2D.moveTo(BarGraph.AXES_PADDING, BarGraph.TITLE_PADDING);
         context2D.lineTo(BarGraph.AXES_PADDING, this.bottom());
         context2D.moveTo(BarGraph.AXES_PADDING - 1, this.bottom());
         context2D.lineTo(this.right(), this.bottom());
         context2D.closePath();
 
         context2D.stroke();
+
+        let canvasHeight = this.bottom() - BarGraph.TITLE_PADDING;
+        let numTicks = floor(canvasHeight / 70) || 1;
+        let tickStartX = BarGraph.AXES_PADDING - floor(BarGraph.TICK_LENGTH / 2);
+
+        for (var tick = 1; tick <= numTicks; ++tick) {
+            let interpolateBy = tick / numTicks;
+            let yHeight = (interpolateBy * canvasHeight);
+            let yVal = interpolateBy * maxY;
+            let tickY = this.bottom() - yHeight;
+
+            let text = floor(yVal) + '';
+            let textWidth = context2D.measureText(text).width;
+            let textStart = BarGraph.AXES_PADDING - textWidth - 4;
+            context2D.textBaseline = 'middle';
+            context2D.fillText(text, textStart, tickY)
+
+            context2D.beginPath();
+            context2D.moveTo(tickStartX, tickY);
+            context2D.lineTo(tickStartX + BarGraph.TICK_LENGTH, tickY);
+            context2D.closePath();
+
+            context2D.stroke();
+        }
     }
 
     render() {
@@ -199,10 +232,10 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
 
         let colors = take(this.props.colors, numLevels);
 
-        let yScale = this.makeYScale();
+        let { yScale, maxY } = this.makeYScale();
 
         // Draw everything in the background
-        this.drawAxes();
+        this.drawAxes(maxY);
 
         let topMargin = parseInt(window.getComputedStyle(document.body).marginTop);
         let leftMargin = parseInt(window.getComputedStyle(document.body).marginLeft);
@@ -210,7 +243,7 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
         let top = BarGraph.TITLE_PADDING;
         let left = BarGraph.AXES_PADDING + BarGraph.FRAME_PADDING;
         let height = this.bottom() - BarGraph.TITLE_PADDING - 1;
-        let width = this.right() - BarGraph.AXES_PADDING - (2 * BarGraph.FRAME_PADDING);
+        let width = this.drawableWidth();
 
         let props = assign({}, this.props, { cluster: this.state.clusters, colors, yScale, top, left, stackWidth: this.state.stackWidth,
                                             width, height, clusterPadding: BarGraph.CLUSTER_PADDING}) as any;
