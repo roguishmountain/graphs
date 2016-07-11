@@ -199,6 +199,9 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
         let canvasHeight = this.bottom() - BarGraph.TITLE_PADDING;
         let numTicks = floor(canvasHeight / 70) || 1;
         let tickStartX = BarGraph.AXES_PADDING - floor(BarGraph.TICK_LENGTH / 2);
+        context2D.textBaseline = 'middle';
+        context2D.textAlign = 'start';
+        context2D.font = '10px sans-serif';
 
         for (var tick = 1; tick <= numTicks; ++tick) {
             let interpolateBy = tick / numTicks;
@@ -209,7 +212,6 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
             let text = floor(yVal) + '';
             let textWidth = context2D.measureText(text).width;
             let textStart = BarGraph.AXES_PADDING - textWidth - 4;
-            context2D.textBaseline = 'middle';
             context2D.fillText(text, textStart, tickY)
 
             context2D.beginPath();
@@ -219,6 +221,21 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
 
             context2D.stroke();
         }
+    }
+
+    drawTitle() {
+        if (!this.state.canvasRef) return;
+
+        let context2D = this.state.canvasRef.getContext("2d");
+        context2D.strokeStyle = '#000';
+
+        let yNames = map(this.props.ys, y => y.name).join(", ");
+        let title = this.props.title || `${this.props.x.name} vs ${yNames}`;
+
+        context2D.textAlign = 'center';
+        context2D.textBaseline = 'middle';
+        context2D.font = '24px serif';
+        context2D.fillText(title, floor(this.props.width / 2), floor(BarGraph.TITLE_PADDING / 2));
     }
 
     render() {
@@ -235,6 +252,7 @@ export class BarGraph extends React.Component<BarGraphProps, BarGraphState> {
         let { yScale, maxY } = this.makeYScale();
 
         // Draw everything in the background
+        this.drawTitle();
         this.drawAxes(maxY);
 
         let topMargin = parseInt(window.getComputedStyle(document.body).marginTop);
