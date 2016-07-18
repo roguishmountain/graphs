@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { reduce, first, forEach, range, zip, isFunction, drop, head, keys, last } from 'lodash';
+import { reduce, first, forEach, range, zip, isFunction, drop, head, keys, last, curry } from 'lodash';
 import { Data, Color, Element, Cluster } from './Data';
 
 export interface SubBarGraphProps {
@@ -14,7 +14,7 @@ export interface SubBarGraphProps {
     width: number;
     clusterPadding: number;
     barPadding?: number;
-    clickHandler?: (evt: any) => void;
+    clickHandler?: (e: Element) => void;
     stackWidth: number;
 }
 
@@ -31,34 +31,57 @@ export class SubBarGraph extends React.Component<SubBarGraphProps, SubBarGraphSt
         clusterBy: []
     }
 
+    setup(props: SubBarGraphProps) {
+        let ref = (canvasRef) => this.setState({canvasRef, canvasObj: this.state.canvasObj});
+        let { top, left, height, width } = props;
+        let style = {position: 'absolute', top, left};
+        let onClick = this.handleClicked(this.props.clickHandler).bind(this);
+
+        return {onClick, ref, width, height, style}
+    }
+
     componentWillReceiveProps(nextProps) {
-        if (this.state.canvasRef) {
+       if (this.state.canvasRef) {
             let context2D = this.state.canvasRef.getContext('2d');
             context2D.clearRect(0,0,this.props.width, this.props.height);
         }
 
-        let ref = (canvasRef) => this.setState({canvasRef, canvasObj: this.state.canvasObj});
-        let { top, left, height, width } = nextProps;
-        let style = {position: 'absolute', top, left};
-        let onClick = this.props.clickHandler ? this.props.clickHandler.bind(this) : this.logClickedElement.bind(this);
-
         this.setState({
             canvasRef: undefined,
-            canvasObj: <canvas {...{onClick, ref, width, height, style}} />
+            canvasObj: <canvas {...this.setup(nextProps)} />
         });
     }
 
     constructor(props) {
         super(props);
-        let ref = (canvasRef) => this.setState({canvasRef, canvasObj: this.state.canvasObj});
-        let { top, left, height, width } = props;
-        let style = {position: 'absolute', top, left};
-        let onClick = this.props.clickHandler ? this.props.clickHandler.bind(this) : this.logClickedElement.bind(this);
+
         this.state = {
             canvasRef: undefined,
-            canvasObj: <canvas {...{onClick, ref, width, height, style}} />
+            canvasObj: <canvas {...this.setup(props)} />
         };
     }
+
+    findElement(xValue: number): Element {
+        return reduce(keys(this.stackStarts), (result, key) => {
+            if (result)
+                return result;
+            let offset = parseInt(key);
+            if (offset < xValue && xValue < offset + this.props.stackWidth)
+                return this.stackStarts[key];
+            else
+                return undefined;
+        }, undefined);
+    }
+
+    handleClicked = curry((handle: (element: Element) => void, evt) => {
+        let xValue = evt.clientX + window.pageXOffset - (parseInt(window.getComputedStyle(document.body).marginLeft) + this.props.left);
+
+        let element = this.findElement(xValue);
+        if (element && handle)
+            handle(element);
+        else if (element)
+            console.log(element);
+    });
 
     drawStack(stackInfo: any[]): void {
         if (!this.state.canvasRef) return;
@@ -102,26 +125,6 @@ export class SubBarGraph extends React.Component<SubBarGraphProps, SubBarGraphSt
         } else {
             return reduce(cluster.data, (acc, c) => this.drawCluster(c, acc, clusterPadding / 2) + clusterPadding, xOffset);
         }
-    }
-
-    findElement(xValue: number): Element {
-        return reduce(keys(this.stackStarts), (result, key) => {
-            if (result) return result;
-            else {
-                let offset = parseInt(key);
-                if (offset < xValue && xValue < offset + this.props.stackWidth)
-                    return this.stackStarts[key];
-                else
-                    return undefined;
-            }
-        }, undefined);
-    }
-
-    logClickedElement(evt) {
-        let xValue = evt.clientX + window.pageXOffset - (parseInt(window.getComputedStyle(document.body).marginLeft) + this.props.left);
-
-        let element = this.findElement(xValue);
-        if (element) console.log(element);
     }
 
     render() {
